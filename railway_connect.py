@@ -56,13 +56,8 @@ def main():
     
     # Your SQL query here
     query = """
-        SELECT 
-            category, 
-            COUNT(*) as count, 
-            AVG(price) as avg_price
-        FROM products
-        GROUP BY category
-        ORDER BY count DESC;
+        SELECT *
+        FROM user_data;
     """
     
     print("\n" + "="*50)
