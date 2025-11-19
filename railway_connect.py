@@ -8,7 +8,7 @@ def create_connection():
     try:
         connection = psycopg2.connect(
             host=os.getenv('DB_HOST'),
-            port=os.getenv('DB_PORT', '5432'),  # Default to 5432 if not set
+            port=os.getenv('DB_PORT', '5432'),
             database=os.getenv('DB_NAME'),
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD')
@@ -54,16 +54,8 @@ def main():
         print("Failed to connect to database")
         return
     
-    # Example Query 1: Simple SELECT
-    query1 = "SELECT * FROM users LIMIT 10;"
-    results, columns = execute_query(conn, query1)
-    
-    if results:
-        print(f"\nColumns: {columns}")
-        print(f"Results: {results}")
-    
-    # Example Query 2: Using pandas (recommended for analysis)
-    query2 = """
+    # Your SQL query here
+    query = """
         SELECT 
             category, 
             COUNT(*) as count, 
@@ -72,15 +64,24 @@ def main():
         GROUP BY category
         ORDER BY count DESC;
     """
-    df = query_to_dataframe(conn, query2)
+    
+    print("\n" + "="*50)
+    print("EXECUTING QUERY:")
+    print("="*50)
+    print(query)
+    print("="*50 + "\n")
+    
+    # Execute query and get results as DataFrame
+    df = query_to_dataframe(conn, query)
     
     if df is not None:
-        print("\nQuery Results as DataFrame:")
-        print(df)
-        
-        # Save to CSV
-        df.to_csv('query_results.csv', index=False)
-        print("Results saved to query_results.csv")
+        print("QUERY RESULTS:")
+        print("-"*50)
+        print(df.to_string(index=False))  # Print full dataframe without index
+        print("-"*50)
+        print(f"\nTotal rows returned: {len(df)}")
+    else:
+        print("No results returned or query failed")
     
     # Close connection
     conn.close()
