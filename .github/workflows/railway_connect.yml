@@ -34,9 +34,3 @@ jobs:
     
     - name: Run database query script
       run: python railway_connect.py
-    
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: query-results
-        path: query_results.csv
