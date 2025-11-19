@@ -33,7 +33,7 @@ jobs:
         echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
     
     - name: Run database query script
-      run: python query_database.py
+      run: python railway_connect.py
     
     - name: Upload results
       uses: actions/upload-artifact@v4
