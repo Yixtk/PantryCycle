@@ -61,10 +61,11 @@ export async function createUser(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: email || username, // Use email parameter or username as email
+        username,        // ✅ Add this!
         password,
         firstName,
         lastName,
+        email,           // ✅ Keep this
         phone
       })
     });
