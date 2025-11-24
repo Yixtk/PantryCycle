@@ -28,7 +28,7 @@ export async function loginUser(username: string, password: string): Promise<Use
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        email: username,  // In login form, username is actually email
+        username,        // ✅ Change from email to username
         password 
       })
     });
