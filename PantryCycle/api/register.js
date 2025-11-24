@@ -26,44 +26,56 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { username, password, firstName, lastName, email, phone } = req.body;
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName) {
+    if (!username || !password || !firstName || !lastName) {
       return res.status(400).json({ 
-        error: 'Email, password, first name, and last name are required' 
+        error: 'Username, password, first name, and last name are required' 
       });
     }
 
-    console.log('Registration attempt for:', email);
+    console.log('Registration attempt for:', username);
 
-    // Check if user already exists
-    const existingUser = await pool.query(
-      'SELECT id FROM user_data WHERE email = $1',
-      [email]
+    // Check if username already exists
+    const existingUsername = await pool.query(
+      'SELECT id FROM user_data WHERE username = $1',
+      [username]
     );
 
-    if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already registered' });
+    if (existingUsername.rows.length > 0) {
+      return res.status(409).json({ error: 'Username already taken' });
     }
 
-    // Insert new user (no username column - using email)
+    // Check if email already exists (if email is provided)
+    if (email) {
+      const existingEmail = await pool.query(
+        'SELECT id FROM user_data WHERE email = $1',
+        [email]
+      );
+
+      if (existingEmail.rows.length > 0) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+    }
+
+    // Insert new user
     const result = await pool.query(
       `INSERT INTO user_data 
-       (first_name, last_name, email, phone, password, other) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id, first_name, last_name, email, phone`,
-      [firstName, lastName, email, phone || null, password, '{}']
+       (username, first_name, last_name, email, phone, password, other) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING id, username, first_name, last_name, email, phone`,
+      [username, firstName, lastName, email || null, phone || null, password, '{}']
     );
 
     const newUser = result.rows[0];
 
     console.log('User registered successfully:', newUser.id);
 
-    // Return user data (using email as username for compatibility)
+    // Return user data
     return res.status(201).json({
       id: newUser.id.toString(),
-      username: newUser.email,  // Use email as username
+      username: newUser.username,
       firstName: newUser.first_name,
       lastName: newUser.last_name,
       email: newUser.email,
