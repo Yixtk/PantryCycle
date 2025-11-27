@@ -63,20 +63,25 @@ export default function App() {
   };
 
   const handleCreateAccount = async (accountData: {
-    username: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }) => {
-    try {
-      const newUser = await api.createUser(accountData);
-      setUser(newUser);
-      setAppState('onboarding');
-    } catch (error) {
-      console.error('Account creation failed:', error);
-      // TODO: Show error message to user
-    }
-  };
+  username: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}) => {
+  try {
+    const newUser = await api.createUser(
+      accountData.username,
+      accountData.password,
+      accountData.firstName,
+      accountData.lastName
+    );
+    setUser(newUser);
+    setAppState('onboarding');
+  } catch (error) {
+    console.error('Account creation failed:', error);
+    // TODO: Show error message to user
+  }
+};
 
   // ============================================
   // ONBOARDING HANDLER
