@@ -28,7 +28,7 @@ export async function loginUser(username: string, password: string): Promise<Use
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        username,        // ✅ Change from email to username
+        username,
         password 
       })
     });
@@ -61,12 +61,11 @@ export async function createUser(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username,        // ✅ Add this!
+        username,
         password,
         firstName,
-        lastName,
-        email,           // ✅ Keep this
-        phone
+        lastName
+        // email and phone removed - not collected by frontend form
       })
     });
 
