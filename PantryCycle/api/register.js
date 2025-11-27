@@ -12,7 +12,6 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -26,9 +25,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { username, password, firstName, lastName, email, phone } = req.body;
+    const { username, password, firstName, lastName } = req.body;
 
-    // Validate required fields
+    // Only validate required fields
     if (!username || !password || !firstName || !lastName) {
       return res.status(400).json({ 
         error: 'Username, password, first name, and last name are required' 
@@ -47,39 +46,24 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Username already taken' });
     }
 
-    // Check if email already exists (if email is provided)
-    if (email) {
-      const existingEmail = await pool.query(
-        'SELECT id FROM user_data WHERE email = $1',
-        [email]
-      );
-
-      if (existingEmail.rows.length > 0) {
-        return res.status(409).json({ error: 'Email already registered' });
-      }
-    }
-
-    // Insert new user
+    // Insert new user (only required fields)
     const result = await pool.query(
       `INSERT INTO user_data 
-       (username, first_name, last_name, email, phone, password, other) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       RETURNING id, username, first_name, last_name, email, phone`,
-      [username, firstName, lastName, email || null, phone || null, password, '{}']
+       (username, first_name, last_name, password, other) 
+       VALUES ($1, $2, $3, $4, $5) 
+       RETURNING id, username, first_name, last_name`,
+      [username, firstName, lastName, password, '{}']
     );
 
     const newUser = result.rows[0];
 
     console.log('User registered successfully:', newUser.id);
 
-    // Return user data
     return res.status(201).json({
       id: newUser.id.toString(),
       username: newUser.username,
       firstName: newUser.first_name,
-      lastName: newUser.last_name,
-      email: newUser.email,
-      phone: newUser.phone?.toString()
+      lastName: newUser.last_name
     });
 
   } catch (error) {
