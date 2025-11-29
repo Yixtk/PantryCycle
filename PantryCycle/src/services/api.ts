@@ -86,53 +86,26 @@ export async function createUser(
 // ============================================
 
 export async function getUserProfile(userId: string): Promise<UserProfile> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`);
-  // return response.json();
-  
-  // Generate mock period history for demo (last 6 periods)
-  const today = new Date();
-  const mockPeriodHistory: PeriodRecord[] = [];
-  
-  // Start from 5 cycles ago (roughly 140 days ago with 28-day cycles)
-  for (let i = 5; i >= 0; i--) {
-    const cycleStart = new Date(today);
-    cycleStart.setDate(today.getDate() - (i * 28) - 20); // 20 days ago for the most recent (so predicted period is in 8 days)
-    
-    const cycleEnd = new Date(cycleStart);
-    cycleEnd.setDate(cycleStart.getDate() + 4); // Add 4 days to get 5-day duration (day 0-4 = 5 days)
-    
-    mockPeriodHistory.push({
-      id: `period-${i}`,
-      userId,
-      startDate: cycleStart,
-      endDate: cycleEnd,
-      duration: 5,
+  try {
+    const response = await fetch(`/api/get-profile?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get profile');
+    }
+
+    const data = await response.json();
+    return data.profile;
+  } catch (error) {
+    console.error('Get profile error:', error);
+    throw error;
   }
-
-  // Most recent period
-  const lastPeriod = mockPeriodHistory[mockPeriodHistory.length - 1];
-  
-  console.log('Mock period data generated:', {
-    lastPeriodStart: lastPeriod.startDate,
-    lastPeriodEnd: lastPeriod.endDate,
-    totalPeriods: mockPeriodHistory.length
-  });
-  
-  // Mock response with realistic data
-  return {
-    userId,
-    lastPeriodStart: lastPeriod.startDate,
-    lastPeriodEnd: lastPeriod.endDate,
-    periodHistory: mockPeriodHistory,
-    dietaryPreferences: ['Vegetarian', 'Gluten-Free'],
-    allergies: [{ type: 'Peanuts' }, { type: 'Shellfish' }],
-    selectedMeals: { 0: ['breakfast', 'lunch'], 1: ['breakfast', 'dinner'], 2: ['lunch'], 3: ['breakfast', 'lunch', 'dinner'], 4: ['lunch', 'dinner'], 5: ['breakfast', 'lunch'], 6: ['breakfast', 'dinner'] },
-    recipesPerWeek: 7,
-  };
 }
-
 export async function updateUserProfile(userId: string, profile: Partial<UserProfile>): Promise<UserProfile> {
   try {
     const response = await fetch('/api/update-profile', {
@@ -189,12 +162,25 @@ export async function addPeriodRecord(userId: string, record: Omit<PeriodRecord,
   }
 }
 export async function getPeriodHistory(userId: string): Promise<PeriodRecord[]> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/periods`);
-  // return response.json();
-  
-  // Mock response
-  return [];
+  try {
+    const response = await fetch(`/api/get-periods?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get period history');
+    }
+
+    const data = await response.json();
+    return data.periods;
+  } catch (error) {
+    console.error('Get periods error:', error);
+    throw error;
+  }
 }
 
 export async function saveDayLog(userId: string, log: Omit<DayLog, 'id' | 'userId'>): Promise<DayLog> {
