@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     // Get user data
-    const userResult = await pool.query(
+    const result = await pool.query(
       `SELECT 
         id, 
         dietary_preferences, 
@@ -50,21 +50,11 @@ export default async function handler(req, res) {
       [userId]
     );
 
-    if (userResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const user = userResult.rows[0];
-
-    // Get period history
-    const periodsResult = await pool.query(
-      `SELECT id, start_date, end_date, duration, created_at
-       FROM period_records
-       WHERE user_id = $1
-       ORDER BY start_date DESC
-       LIMIT 10`,
-      [userId]
-    );
+    const user = result.rows[0];
 
     // Map allergies from boolean columns
     const allergies = [];
@@ -79,7 +69,7 @@ export default async function handler(req, res) {
     // Add other allergies from JSON
     if (user.other) {
       try {
-        const otherData = JSON.parse(user.other);
+        const otherData = typeof user.other === 'string' ? JSON.parse(user.other) : user.other;
         if (otherData.allergies) {
           otherData.allergies.forEach(a => allergies.push({ type: a }));
         }
@@ -88,18 +78,24 @@ export default async function handler(req, res) {
       }
     }
 
+    // Build mock period history based on last period (for 28-day cycle prediction)
+    const periodHistory = [];
+    if (user.start_date && user.end_date) {
+      periodHistory.push({
+        id: '1',
+        userId: userId,
+        startDate: user.start_date,
+        endDate: user.end_date,
+        duration: Math.ceil((new Date(user.end_date) - new Date(user.start_date)) / (1000 * 60 * 60 * 24))
+      });
+    }
+
     // Build profile response
     const profile = {
       userId: userId,
       lastPeriodStart: user.start_date,
       lastPeriodEnd: user.end_date,
-      periodHistory: periodsResult.rows.map(p => ({
-        id: p.id.toString(),
-        userId: userId,
-        startDate: p.start_date,
-        endDate: p.end_date,
-        duration: p.duration
-      })),
+      periodHistory: periodHistory,
       dietaryPreferences: user.dietary_preferences || [],
       allergies: allergies,
       selectedMeals: user.selected_meals || {},
