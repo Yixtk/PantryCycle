@@ -134,35 +134,14 @@ export async function updateUserProfile(userId: string, profile: Partial<UserPro
 }
 
 export async function addPeriodRecord(userId: string, record: Omit<PeriodRecord, 'id' | 'userId'>): Promise<PeriodRecord> {
-  try {
-    const response = await fetch('/api/add-period', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        startDate: record.startDate.toISOString().split('T')[0],
-        endDate: record.endDate.toISOString().split('T')[0],
-        duration: record.duration
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to add period record');
-    }
-
-    const data = await response.json();
-    
-    return {
-      id: data.period.id.toString(),
-      userId,
-      ...record
-    };
-  } catch (error) {
-    console.error('Add period error:', error);
-    throw error;
-  }
+  // This now just returns the record since we save it via updateUserProfile
+  return {
+    id: Date.now().toString(),
+    userId,
+    ...record
+  };
 }
+
 export async function getPeriodHistory(userId: string): Promise<PeriodRecord[]> {
   try {
     const response = await fetch(`/api/get-periods?userId=${userId}`, {
