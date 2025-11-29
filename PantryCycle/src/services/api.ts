@@ -134,39 +134,60 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
 }
 
 export async function updateUserProfile(userId: string, profile: Partial<UserProfile>): Promise<UserProfile> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(profile)
-  // });
-  // return response.json();
-  
-  // Mock response
-  return { userId, ...profile } as UserProfile;
-}
+  try {
+    const response = await fetch('/api/update-profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        dietaryPreferences: profile.dietaryPreferences,
+        allergies: profile.allergies?.map(a => a.type),
+        selectedMeals: profile.selectedMeals
+      })
+    });
 
-// ============================================
-// PERIOD TRACKING API
-// ============================================
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update profile');
+    }
+
+    return { userId, ...profile } as UserProfile;
+  } catch (error) {
+    console.error('Update profile error:', error);
+    throw error;
+  }
+}
 
 export async function addPeriodRecord(userId: string, record: Omit<PeriodRecord, 'id' | 'userId'>): Promise<PeriodRecord> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/periods`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(record)
-  // });
-  // return response.json();
-  
-  // Mock response
-  return {
-    id: Date.now().toString(),
-    userId,
-    ...record,
-  };
-}
+  try {
+    const response = await fetch('/api/add-period', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        startDate: record.startDate.toISOString().split('T')[0],
+        endDate: record.endDate.toISOString().split('T')[0],
+        duration: record.duration
+      })
+    });
 
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add period record');
+    }
+
+    const data = await response.json();
+    
+    return {
+      id: data.period.id.toString(),
+      userId,
+      ...record
+    };
+  } catch (error) {
+    console.error('Add period error:', error);
+    throw error;
+  }
+}
 export async function getPeriodHistory(userId: string): Promise<PeriodRecord[]> {
   // TODO: Replace with actual API call
   // const response = await fetch(`${API_BASE_URL}/users/${userId}/periods`);
