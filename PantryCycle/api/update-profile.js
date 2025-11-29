@@ -23,24 +23,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userId, dietaryPreferences, allergies, selectedMeals } = req.body;
+    const { userId, dietaryPreferences, allergies, selectedMeals, lastPeriodStart, lastPeriodEnd } = req.body;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID required' });
     }
 
-    // Build update fields based on what's provided
+    console.log('Updating profile for user:', userId);
+
+    // Build update query dynamically
     const updates = [];
     const values = [];
     let paramCount = 1;
 
-    if (dietaryPreferences) {
+    // Add dietary preferences
+    if (dietaryPreferences !== undefined) {
       updates.push(`dietary_preferences = $${paramCount++}`);
       values.push(dietaryPreferences);
     }
 
-    if (allergies) {
-      // Map allergies to boolean columns
+    // Add selected meals
+    if (selectedMeals !== undefined) {
+      updates.push(`selected_meals = $${paramCount++}`);
+      values.push(JSON.stringify(selectedMeals));
+    }
+
+    // Add period dates
+    if (lastPeriodStart !== undefined) {
+      updates.push(`start_date = $${paramCount++}`);
+      values.push(lastPeriodStart);
+    }
+
+    if (lastPeriodEnd !== undefined) {
+      updates.push(`end_date = $${paramCount++}`);
+      values.push(lastPeriodEnd);
+    }
+
+    // Handle allergies - map to boolean columns
+    if (allergies !== undefined) {
       const allergyMap = {
         'Dairy': 'no_dairy',
         'Eggs': 'no_eggs',
@@ -51,10 +71,22 @@ export default async function handler(req, res) {
         'Shellfish': 'no_shellfish'
       };
 
-      Object.keys(allergyMap).forEach(allergy => {
-        const column = allergyMap[allergy];
+      // Set all to false first
+      Object.values(allergyMap).forEach(column => {
         updates.push(`${column} = $${paramCount++}`);
-        values.push(allergies.includes(allergy));
+        values.push(false);
+      });
+
+      // Then set selected ones to true
+      allergies.forEach(allergy => {
+        if (allergyMap[allergy]) {
+          const column = allergyMap[allergy];
+          // Find and update the value
+          const index = Object.values(allergyMap).indexOf(column);
+          if (index !== -1) {
+            values[values.length - Object.values(allergyMap).length + index] = true;
+          }
+        }
       });
 
       // Store other allergies in JSON
@@ -62,12 +94,14 @@ export default async function handler(req, res) {
       if (otherAllergies.length > 0) {
         updates.push(`other = $${paramCount++}`);
         values.push(JSON.stringify({ allergies: otherAllergies }));
+      } else {
+        updates.push(`other = $${paramCount++}`);
+        values.push('{}');
       }
     }
 
-    if (selectedMeals) {
-      updates.push(`selected_meals = $${paramCount++}`);
-      values.push(JSON.stringify(selectedMeals));
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
     }
 
     values.push(userId); // Last parameter for WHERE clause
@@ -76,8 +110,11 @@ export default async function handler(req, res) {
       UPDATE user_data 
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING *
+      RETURNING id
     `;
+
+    console.log('Executing query:', query);
+    console.log('With values:', values);
 
     const result = await pool.query(query, values);
 
@@ -85,7 +122,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('Profile updated for user:', userId);
+    console.log('Profile updated successfully for user:', userId);
 
     return res.status(200).json({
       success: true,
