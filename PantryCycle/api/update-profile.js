@@ -11,7 +11,7 @@ const pool = new Pool({
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -31,37 +31,32 @@ export default async function handler(req, res) {
 
     console.log('Updating profile for user:', userId);
 
-    // Build update query dynamically
-    const updates = [];
+    const setParts = [];
     const values = [];
-    let paramCount = 1;
+    let valueIndex = 1;
 
-    // Add dietary preferences
+    // Handle dietary preferences as booleans
     if (dietaryPreferences !== undefined) {
-      updates.push(`dietary_preferences = $${paramCount++}`);
-      values.push(dietaryPreferences);
+      const dietaryColumns = {
+        'Vegetarian': 'is_vegetarian',
+        'Vegan': 'is_vegan',
+        'Gluten-Free': 'is_gluten_free',
+        'Dairy-Free': 'is_dairy_free',
+        'Low-Carb': 'is_low_carb',
+        'High-Protein': 'is_high_protein',
+        'Pescatarian': 'is_pescatarian',
+        'Keto': 'is_keto'
+      };
+
+      Object.entries(dietaryColumns).forEach(([prefName, columnName]) => {
+        setParts.push(`${columnName} = $${valueIndex++}`);
+        values.push(dietaryPreferences.includes(prefName));
+      });
     }
 
-    // Add selected meals
-    if (selectedMeals !== undefined) {
-      updates.push(`selected_meals = $${paramCount++}`);
-      values.push(JSON.stringify(selectedMeals));
-    }
-
-    // Add period dates
-    if (lastPeriodStart !== undefined) {
-      updates.push(`start_date = $${paramCount++}`);
-      values.push(lastPeriodStart);
-    }
-
-    if (lastPeriodEnd !== undefined) {
-      updates.push(`end_date = $${paramCount++}`);
-      values.push(lastPeriodEnd);
-    }
-
-    // Handle allergies - map to boolean columns
+    // Handle allergies as booleans
     if (allergies !== undefined) {
-      const allergyMap = {
+      const allergyColumns = {
         'Dairy': 'no_dairy',
         'Eggs': 'no_eggs',
         'Peanuts': 'no_peanuts',
@@ -71,62 +66,59 @@ export default async function handler(req, res) {
         'Shellfish': 'no_shellfish'
       };
 
-      // Set all to false first
-      Object.values(allergyMap).forEach(column => {
-        updates.push(`${column} = $${paramCount++}`);
-        values.push(false);
-      });
-
-      // Then set selected ones to true
-      allergies.forEach(allergy => {
-        if (allergyMap[allergy]) {
-          const column = allergyMap[allergy];
-          // Find and update the value
-          const index = Object.values(allergyMap).indexOf(column);
-          if (index !== -1) {
-            values[values.length - Object.values(allergyMap).length + index] = true;
-          }
-        }
+      Object.entries(allergyColumns).forEach(([allergyName, columnName]) => {
+        setParts.push(`${columnName} = $${valueIndex++}`);
+        values.push(allergies.includes(allergyName));
       });
 
       // Store other allergies in JSON
-      const otherAllergies = allergies.filter(a => !allergyMap[a]);
-      if (otherAllergies.length > 0) {
-        updates.push(`other = $${paramCount++}`);
-        values.push(JSON.stringify({ allergies: otherAllergies }));
-      } else {
-        updates.push(`other = $${paramCount++}`);
-        values.push('{}');
-      }
+      const otherAllergies = allergies.filter(a => !allergyColumns[a]);
+      setParts.push(`other = $${valueIndex++}`);
+      values.push(otherAllergies.length > 0 ? JSON.stringify({ allergies: otherAllergies }) : '{}');
     }
 
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No updates provided' });
+    // Selected meals (JSON)
+    if (selectedMeals !== undefined) {
+      setParts.push(`selected_meals = $${valueIndex++}`);
+      values.push(JSON.stringify(selectedMeals));
     }
 
-    values.push(userId); // Last parameter for WHERE clause
+    // Period dates
+    if (lastPeriodStart !== undefined) {
+      setParts.push(`start_date = $${valueIndex++}`);
+      values.push(lastPeriodStart);
+    }
+
+    if (lastPeriodEnd !== undefined) {
+      setParts.push(`end_date = $${valueIndex++}`);
+      values.push(lastPeriodEnd);
+    }
+
+    if (setParts.length === 0) {
+      return res.status(400).json({ error: 'No data to update' });
+    }
+
+    values.push(userId);
 
     const query = `
       UPDATE user_data 
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount}
+      SET ${setParts.join(', ')}
+      WHERE id = $${valueIndex}
       RETURNING id
     `;
 
-    console.log('Executing query:', query);
-    console.log('With values:', values);
-
+    console.log('Executing update');
     const result = await pool.query(query, values);
 
-    if (result.rows.length === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('Profile updated successfully for user:', userId);
+    console.log('Profile updated successfully');
 
     return res.status(200).json({
       success: true,
-      message: 'Profile updated'
+      message: 'Profile updated successfully'
     });
 
   } catch (error) {
