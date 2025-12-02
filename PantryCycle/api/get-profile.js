@@ -29,14 +29,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'User ID required' });
     }
 
-    // Get user data
     const result = await pool.query(
       `SELECT 
-        id, 
-        dietary_preferences, 
-        selected_meals,
+        id,
         start_date,
         end_date,
+        selected_meals,
+        is_vegetarian,
+        is_vegan,
+        is_gluten_free,
+        is_dairy_free,
+        is_low_carb,
+        is_high_protein,
+        is_pescatarian,
+        is_keto,
         no_dairy,
         no_eggs,
         no_peanuts,
@@ -56,7 +62,18 @@ export default async function handler(req, res) {
 
     const user = result.rows[0];
 
-    // Map allergies from boolean columns
+    // Build dietary preferences array from booleans
+    const dietaryPreferences = [];
+    if (user.is_vegetarian) dietaryPreferences.push('Vegetarian');
+    if (user.is_vegan) dietaryPreferences.push('Vegan');
+    if (user.is_gluten_free) dietaryPreferences.push('Gluten-Free');
+    if (user.is_dairy_free) dietaryPreferences.push('Dairy-Free');
+    if (user.is_low_carb) dietaryPreferences.push('Low-Carb');
+    if (user.is_high_protein) dietaryPreferences.push('High-Protein');
+    if (user.is_pescatarian) dietaryPreferences.push('Pescatarian');
+    if (user.is_keto) dietaryPreferences.push('Keto');
+
+    // Build allergies array from booleans
     const allergies = [];
     if (user.no_dairy) allergies.push({ type: 'Dairy' });
     if (user.no_eggs) allergies.push({ type: 'Eggs' });
@@ -66,7 +83,7 @@ export default async function handler(req, res) {
     if (user.no_soy) allergies.push({ type: 'Soy' });
     if (user.no_shellfish) allergies.push({ type: 'Shellfish' });
 
-    // Add other allergies from JSON
+    // Add other allergies
     if (user.other) {
       try {
         const otherData = typeof user.other === 'string' ? JSON.parse(user.other) : user.other;
@@ -78,25 +95,27 @@ export default async function handler(req, res) {
       }
     }
 
-    // Build mock period history based on last period (for 28-day cycle prediction)
+    // Build period history
     const periodHistory = [];
     if (user.start_date && user.end_date) {
+      const duration = Math.ceil(
+        (new Date(user.end_date) - new Date(user.start_date)) / (1000 * 60 * 60 * 24)
+      );
       periodHistory.push({
         id: '1',
         userId: userId,
         startDate: user.start_date,
         endDate: user.end_date,
-        duration: Math.ceil((new Date(user.end_date) - new Date(user.start_date)) / (1000 * 60 * 60 * 24))
+        duration: duration
       });
     }
 
-    // Build profile response
     const profile = {
       userId: userId,
       lastPeriodStart: user.start_date,
       lastPeriodEnd: user.end_date,
       periodHistory: periodHistory,
-      dietaryPreferences: user.dietary_preferences || [],
+      dietaryPreferences: dietaryPreferences,
       allergies: allergies,
       selectedMeals: user.selected_meals || {},
       recipesPerWeek: 7
