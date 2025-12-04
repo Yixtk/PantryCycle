@@ -10,24 +10,7 @@ interface CalendarPageProps {
   onNavigate: (page: string) => void;
   onUpdateProfile?: (updates: Partial<UserProfile>) => void;
 }
-export function CalendarPage({ 
-  recipes, 
-  userProfile,
-  onRecipeClick, 
-  onNavigate, 
-  onUpdateProfile
-}: CalendarPageProps) {
-  // DEBUG LOGGING
-  console.log('🔍 CalendarPage Debug:', {
-    userProfile: userProfile,
-    hasWeekBlocks: !!userProfile.weekBlocks,
-    weekBlocksLength: userProfile.weekBlocks?.length,
-    weekBlocks: userProfile.weekBlocks,
-    firstBlock: userProfile.weekBlocks?.[0]
-  });
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-  // ... rest of code
 const COLORS = {
   sage: '#8a9a84',
   sageDark: '#5a6b54',
@@ -58,6 +41,14 @@ export function CalendarPage({
   onNavigate, 
   onUpdateProfile
 }: CalendarPageProps) {
+  // DEBUG LOGGING
+  console.log('🔍 CalendarPage Debug:', {
+    hasWeekBlocks: !!userProfile.weekBlocks,
+    weekBlocksLength: userProfile.weekBlocks?.length,
+    weekBlocks: userProfile.weekBlocks,
+    firstBlock: userProfile.weekBlocks?.[0]
+  });
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pastPeriods, setPastPeriods] = useState<PeriodRecord[]>([]);
   
@@ -106,91 +97,86 @@ export function CalendarPage({
   };
 
   const getWeekBlockForDate = (date: Date): WeekBlock | null => {
-  if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
-    return null;
-  }
-
-  const checkDate = new Date(date);
-  checkDate.setHours(0, 0, 0, 0);
-
-  for (const block of userProfile.weekBlocks) {
-    // Ensure dates are Date objects
-    const start = block.startDate instanceof Date 
-      ? new Date(block.startDate) 
-      : new Date(block.startDate);
-    start.setHours(0, 0, 0, 0);
-    
-    const end = block.endDate instanceof Date 
-      ? new Date(block.endDate) 
-      : new Date(block.endDate);
-    end.setHours(23, 59, 59, 999);
-
-    if (checkDate >= start && checkDate <= end) {
-      return {
-        ...block,
-        startDate: start,
-        endDate: end
-      };
+    if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
+      return null;
     }
-  }
 
-  return null;
-};
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
 
-  // Get available weeks to plan (next 8 weeks that aren't already planned)
-  // Get available weeks to plan (next 8 weeks that aren't already planned)
-  // Get available weeks to plan (next 8 weeks that aren't already planned)
-const getAvailableWeeks = (): Date[] => {
-  const weeks: Date[] = [];
-  const today = new Date();
-  const currentWeekStart = getSundayOfWeek(today);
+    for (const block of userProfile.weekBlocks) {
+      const start = block.startDate instanceof Date 
+        ? new Date(block.startDate) 
+        : new Date(block.startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = block.endDate instanceof Date 
+        ? new Date(block.endDate) 
+        : new Date(block.endDate);
+      end.setHours(23, 59, 59, 999);
 
-  // If weekBlocks doesn't exist or is empty, return all 8 weeks
-  if (!userProfile.weekBlocks || !Array.isArray(userProfile.weekBlocks)) {
+      if (checkDate >= start && checkDate <= end) {
+        return {
+          ...block,
+          startDate: start,
+          endDate: end
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const getAvailableWeeks = (): Date[] => {
+    const weeks: Date[] = [];
+    const today = new Date();
+    const currentWeekStart = getSundayOfWeek(today);
+
+    if (!userProfile.weekBlocks || !Array.isArray(userProfile.weekBlocks)) {
+      for (let i = 0; i < 8; i++) {
+        const weekStart = new Date(currentWeekStart);
+        weekStart.setDate(weekStart.getDate() + (i * 7));
+        weeks.push(weekStart);
+      }
+      return weeks;
+    }
+
     for (let i = 0; i < 8; i++) {
       const weekStart = new Date(currentWeekStart);
       weekStart.setDate(weekStart.getDate() + (i * 7));
-      weeks.push(weekStart);
-    }
-    return weeks;
-  }
-
-  for (let i = 0; i < 8; i++) {
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setDate(weekStart.getDate() + (i * 7));
-    weekStart.setHours(0, 0, 0, 0);
-    
-    // Check if this week is already planned
-    let isPlanned = false;
-    
-    try {
-      for (const block of userProfile.weekBlocks) {
-        if (!block || !block.startDate) {
-          console.warn('Invalid week block:', block);
-          continue;
+      weekStart.setHours(0, 0, 0, 0);
+      
+      let isPlanned = false;
+      
+      try {
+        for (const block of userProfile.weekBlocks) {
+          if (!block || !block.startDate) {
+            console.warn('Invalid week block:', block);
+            continue;
+          }
+          
+          const blockStart = block.startDate instanceof Date 
+            ? new Date(block.startDate) 
+            : new Date(block.startDate);
+          blockStart.setHours(0, 0, 0, 0);
+          
+          if (blockStart.getTime() === weekStart.getTime()) {
+            isPlanned = true;
+            break;
+          }
         }
-        
-        const blockStart = block.startDate instanceof Date 
-          ? new Date(block.startDate) 
-          : new Date(block.startDate);
-        blockStart.setHours(0, 0, 0, 0);
-        
-        if (blockStart.getTime() === weekStart.getTime()) {
-          isPlanned = true;
-          break;
-        }
+      } catch (error) {
+        console.error('Error checking week blocks:', error);
       }
-    } catch (error) {
-      console.error('Error checking week blocks:', error);
+
+      if (!isPlanned) {
+        weeks.push(weekStart);
+      }
     }
 
-    if (!isPlanned) {
-      weeks.push(weekStart);
-    }
-  }
+    return weeks;
+  };
 
-  return weeks;
-};
   // ========== PERIOD CALCULATIONS ==========
 
   const calculateAverageCycleLength = (): number => {
@@ -377,11 +363,10 @@ const getAvailableWeeks = (): Date[] => {
     const checkDate = new Date(year, month, day);
     const dayOfWeek = checkDate.getDay();
     
-    // ONLY use week blocks - no fallback to default schedule
     const weekBlock = getWeekBlockForDate(checkDate);
     
     if (!weekBlock) {
-      return []; // No week block = no meals
+      return [];
     }
     
     const mealsForDay = weekBlock.meals[dayOfWeek] || [];
@@ -527,7 +512,6 @@ const getAvailableWeeks = (): Date[] => {
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
       <div className="flex-1 p-4 pb-20 overflow-y-auto">
         
-        {/* Header with Add Week Button */}
         <div className="mb-6 pt-2 flex items-center justify-between">
           <div>
             <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
@@ -543,7 +527,6 @@ const getAvailableWeeks = (): Date[] => {
           </Button>
         </div>
 
-        {/* Calendar */}
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
           <div className="flex items-center justify-between mb-4">
             <button onClick={previousMonth} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
@@ -570,7 +553,6 @@ const getAvailableWeeks = (): Date[] => {
           </div>
         </div>
 
-        {/* Legend */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <h3 className="text-sm mb-3" style={{ color: COLORS.sageDark }}>Meal Types</h3>
           <div className="flex gap-4 text-xs">
@@ -590,12 +572,10 @@ const getAvailableWeeks = (): Date[] => {
         </div>
       </div>
 
-      {/* Add Week Modal */}
       {showAddWeekModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl" style={{ color: COLORS.sageDark }}>Plan a Week</h2>
                 <button
@@ -606,7 +586,6 @@ const getAvailableWeeks = (): Date[] => {
                 </button>
               </div>
 
-              {/* Step 1: Select Week */}
               {!selectedWeekStart && (
                 <div>
                   <p className="text-sm text-slate-600 mb-4">
@@ -649,16 +628,13 @@ const getAvailableWeeks = (): Date[] => {
                 </div>
               )}
 
-              {/* Step 2: Select Meals */}
               {selectedWeekStart && (
                 <div>
                   <p className="text-sm text-slate-600 mb-4">
                     Week of {formatDateShort(selectedWeekStart)} - {formatDateShort(getSaturdayOfWeek(selectedWeekStart))}
                   </p>
 
-                  {/* Meal Selection Grid */}
                   <div className="mb-6">
-                    {/* Header Row */}
                     <div className="grid grid-cols-4 gap-2 mb-3 pb-2 border-b-2" style={{ borderColor: COLORS.sageBgLight }}>
                       <div></div>
                       <div className="text-center text-xs" style={{ color: COLORS.sageDark }}>B</div>
@@ -666,7 +642,6 @@ const getAvailableWeeks = (): Date[] => {
                       <div className="text-center text-xs" style={{ color: COLORS.sageDark }}>D</div>
                     </div>
 
-                    {/* Day Rows */}
                     <div className="space-y-2">
                       {[
                         { label: 'Sun', value: 0 },
@@ -699,14 +674,12 @@ const getAvailableWeeks = (): Date[] => {
                     </div>
                   </div>
 
-                  {/* Summary */}
                   <div className="rounded-2xl p-4 mb-6" style={{ backgroundColor: COLORS.sageBg }}>
                     <p className="text-sm text-center" style={{ color: COLORS.sageDark }}>
                       {getTotalMealsSelected()} total meals selected
                     </p>
                   </div>
 
-                  {/* Buttons */}
                   <div className="flex gap-3">
                     <Button
                       onClick={() => setSelectedWeekStart(null)}
@@ -736,7 +709,6 @@ const getAvailableWeeks = (): Date[] => {
         </div>
       )}
 
-      {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3">
         <div className="flex justify-around max-w-md mx-auto">
           <button
