@@ -90,15 +90,20 @@ export default async function handler(req, res) {
     }
 
     // Period dates
+    // Period dates
     if (lastPeriodStart !== undefined) {
       setParts.push(`start_date = $${valueIndex++}`);
-      values.push(lastPeriodStart);
+      // Parse as local date, not UTC
+      const startDate = new Date(lastPeriodStart);
+      values.push(startDate.toISOString().split('T')[0]); // Store as YYYY-MM-DD
     }
 
     if (lastPeriodEnd !== undefined) {
       setParts.push(`end_date = $${valueIndex++}`);
-      values.push(lastPeriodEnd);
+      const endDate = new Date(lastPeriodEnd);
+      values.push(endDate.toISOString().split('T')[0]); // Store as YYYY-MM-DD
     }
+
 
     if (setParts.length === 0) {
       return res.status(400).json({ error: 'No data to update' });
