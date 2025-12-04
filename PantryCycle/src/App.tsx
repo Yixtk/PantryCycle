@@ -149,18 +149,16 @@ export default function App() {
   if (!user) return;
 
   try {
-    // Helper function to get next Sunday
+    // Helper functions
     const getNextSunday = () => {
       const today = new Date();
-      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const currentDay = today.getDay();
       
       if (currentDay === 0) {
-        // Today is Sunday, use today
         const sunday = new Date(today);
         sunday.setHours(0, 0, 0, 0);
         return sunday;
       } else {
-        // Get next Sunday
         const daysUntilSunday = 7 - currentDay;
         const nextSunday = new Date(today);
         nextSunday.setDate(today.getDate() + daysUntilSunday);
@@ -176,7 +174,7 @@ export default function App() {
       return saturday;
     };
 
-    // Create first week block for upcoming Sunday
+    // Create first week block
     const nextSunday = getNextSunday();
     const firstWeekBlock = {
       id: `week-${Date.now()}`,
@@ -185,14 +183,14 @@ export default function App() {
       meals: data.selectedMeals
     };
 
-    // Update profile with period info, preferences, AND first week block
+    // IMPORTANT: Save period dates AND week block
     const profile = await api.updateUserProfile(user.id, {
       lastPeriodStart: data.lastPeriodStart,
       lastPeriodEnd: data.lastPeriodEnd,
       dietaryPreferences: data.dietaryPreferences,
       allergies: data.allergies.map(a => ({ type: a })),
-      selectedMeals: data.selectedMeals,  // Keep as default
-      weekBlocks: [firstWeekBlock],       // Add first week
+      selectedMeals: data.selectedMeals,
+      weekBlocks: [firstWeekBlock],
       recipesPerWeek: 7,
     });
 
