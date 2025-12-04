@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Calendar as CalendarIcon } from 'lucide-react';
-import { Recipe, UserProfile, PeriodRecord } from '../types';
+import { Recipe, UserProfile, PeriodRecord, WeekBlock } from '../types';
 
 interface CalendarPageProps {
   recipes: Recipe[];
@@ -258,6 +258,39 @@ export function CalendarPage({
     return null;
   };
 
+  // ========== WEEK BLOCK HELPERS ==========
+
+  // Helper to get Sunday of the week for a given date
+  const getSundayOfWeek = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  };
+
+  // Find which weekBlock contains a specific date
+  const getWeekBlockForDate = (date: Date): WeekBlock | null => {
+    if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
+      return null;
+    }
+
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+
+    for (const block of userProfile.weekBlocks) {
+      const start = new Date(block.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(block.endDate);
+      end.setHours(0, 0, 0, 0);
+
+      if (checkDate >= start && checkDate <= end) {
+        return block;
+      }
+    }
+
+    return null;
+  };
+
   // ========== CALENDAR GENERATION ==========
 
   const getDaysInMonth = (date: Date) => {
@@ -286,13 +319,26 @@ export function CalendarPage({
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
-  // Assign recipes to days based on user's selected days
+  // Assign recipes to days based on week blocks OR default schedule
   const getRecipesForDay = (day: number): { meal: string; recipe: Recipe }[] => {
-    const dayOfWeek = (startingDayOfWeek + day - 1) % 7;
+    const checkDate = new Date(year, month, day);
+    const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
     
-    // Check if this day has any meals selected
-    const mealsForDay = userProfile.selectedMeals[dayOfWeek];
-    if (!mealsForDay || mealsForDay.length === 0) {
+    // First check if there's a weekBlock for this date
+    const weekBlock = getWeekBlockForDate(checkDate);
+    
+    let mealsForDay: string[] = [];
+    
+    if (weekBlock) {
+      // Use meals from the specific week block
+      mealsForDay = weekBlock.meals[dayOfWeek] || [];
+    } else {
+      // Fall back to default schedule
+      mealsForDay = userProfile.selectedMeals[dayOfWeek] || [];
+    }
+    
+    // If no meals selected for this day, return empty
+    if (mealsForDay.length === 0) {
       return [];
     }
     
@@ -302,11 +348,23 @@ export function CalendarPage({
 
     // Create a flattened list of all meals in the week (for recipe distribution)
     const allMealsInWeek: { day: number; meal: string }[] = [];
-    for (let d = 0; d < 7; d++) {
-      const meals = userProfile.selectedMeals[d] || [];
-      meals.forEach(meal => {
-        allMealsInWeek.push({ day: d, meal });
-      });
+    
+    if (weekBlock) {
+      // Use week block meals
+      for (let d = 0; d < 7; d++) {
+        const meals = weekBlock.meals[d] || [];
+        meals.forEach(meal => {
+          allMealsInWeek.push({ day: d, meal });
+        });
+      }
+    } else {
+      // Use default schedule
+      for (let d = 0; d < 7; d++) {
+        const meals = userProfile.selectedMeals[d] || [];
+        meals.forEach(meal => {
+          allMealsInWeek.push({ day: d, meal });
+        });
+      }
     }
     
     // Sort by day to maintain consistent ordering
@@ -397,19 +455,13 @@ export function CalendarPage({
     const checkDate = new Date(year, month, day);
     const phase = getPhaseForDate(checkDate);
     
-    // Debug logging for first 5 days
-    if (day <= 5) {
-      console.log(`📆 Day ${day} (${monthNames[month]} ${day}):`, {
-        date: checkDate.toDateString(),
-        phase: phase,
-        pastPeriodsCount: pastPeriods.length
-      });
-    }
-    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     checkDate.setHours(0, 0, 0, 0);
     const isToday = checkDate.getTime() === today.getTime();
+
+    // CHANGED: Only apply phase colors if there are meals for this day
+    const hasMeals = recipesForDay.length > 0;
 
     let bgColor = 'white';
     let textColor = '#64748b';
@@ -417,20 +469,20 @@ export function CalendarPage({
     let borderWidth = '1px';
     let borderStyle = 'solid';
 
-    // Apply phase colors
-    if (phase === 'menstrual') {
+    // Apply phase colors ONLY if there are meals
+    if (hasMeals && phase === 'menstrual') {
       bgColor = COLORS.menstrual;
       textColor = COLORS.menstrualText;
-    } else if (phase === 'follicular') {
+    } else if (hasMeals && phase === 'follicular') {
       bgColor = COLORS.follicular;
       textColor = COLORS.follicularText;
-    } else if (phase === 'ovulation') {
+    } else if (hasMeals && phase === 'ovulation') {
       bgColor = COLORS.ovulation;
       textColor = COLORS.ovulationText;
-    } else if (phase === 'luteal') {
+    } else if (hasMeals && phase === 'luteal') {
       bgColor = COLORS.luteal;
       textColor = COLORS.lutealText;
-    } else if (phase === 'predicted') {
+    } else if (hasMeals && phase === 'predicted') {
       bgColor = COLORS.predictedPeriod;
       textColor = COLORS.predictedText;
       borderStyle = 'dashed';
@@ -440,7 +492,7 @@ export function CalendarPage({
     if (isToday) {
       borderColor = COLORS.sage;
       borderWidth = '2px';
-      if (!phase) {
+      if (!hasMeals) {
         bgColor = COLORS.sageBg;
         textColor = COLORS.sageDark;
       }
