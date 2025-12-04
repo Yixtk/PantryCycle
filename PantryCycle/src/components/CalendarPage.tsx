@@ -89,26 +89,36 @@ export function CalendarPage({
   };
 
   const getWeekBlockForDate = (date: Date): WeekBlock | null => {
-    if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
-      return null;
-    }
-
-    const checkDate = new Date(date);
-    checkDate.setHours(0, 0, 0, 0);
-
-    for (const block of userProfile.weekBlocks) {
-      const start = new Date(block.startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(block.endDate);
-      end.setHours(23, 59, 59, 999);
-
-      if (checkDate >= start && checkDate <= end) {
-        return block;
-      }
-    }
-
+  if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
     return null;
-  };
+  }
+
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+
+  for (const block of userProfile.weekBlocks) {
+    // Ensure dates are Date objects
+    const start = block.startDate instanceof Date 
+      ? new Date(block.startDate) 
+      : new Date(block.startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = block.endDate instanceof Date 
+      ? new Date(block.endDate) 
+      : new Date(block.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (checkDate >= start && checkDate <= end) {
+      return {
+        ...block,
+        startDate: start,
+        endDate: end
+      };
+    }
+  }
+
+  return null;
+};
 
   // Get available weeks to plan (next 8 weeks that aren't already planned)
   // Get available weeks to plan (next 8 weeks that aren't already planned)
