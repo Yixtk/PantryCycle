@@ -108,26 +108,51 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
 }
 export async function updateUserProfile(userId: string, profile: Partial<UserProfile>): Promise<UserProfile> {
   try {
+    const body: any = {
+      userId,
+      dietaryPreferences: profile.dietaryPreferences,
+      allergies: profile.allergies?.map(a => a.type),
+      selectedMeals: profile.selectedMeals,
+    };
+
+    // Handle week blocks
+    if (profile.weekBlocks) {
+      body.weekBlocks = profile.weekBlocks.map(block => ({
+        ...block,
+        startDate: block.startDate instanceof Date 
+          ? block.startDate.toISOString() 
+          : block.startDate,
+        endDate: block.endDate instanceof Date 
+          ? block.endDate.toISOString() 
+          : block.endDate,
+      }));
+    }
+
+    // Handle period dates - use date strings to avoid timezone issues
+    if (profile.lastPeriodStart) {
+      body.lastPeriodStart = profile.lastPeriodStart instanceof Date
+        ? profile.lastPeriodStart.toISOString().split('T')[0]
+        : profile.lastPeriodStart;
+    }
+
+    if (profile.lastPeriodEnd) {
+      body.lastPeriodEnd = profile.lastPeriodEnd instanceof Date
+        ? profile.lastPeriodEnd.toISOString().split('T')[0]
+        : profile.lastPeriodEnd;
+    }
+
     const response = await fetch('/api/update-profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        dietaryPreferences: profile.dietaryPreferences,
-        allergies: profile.allergies?.map(a => a.type),
-        selectedMeals: profile.selectedMeals,
-        weekBlocks: profile.weekBlocks,
-        lastPeriodStart: profile.lastPeriodStart?.toISOString().split('T')[0],
-        lastPeriodEnd: profile.lastPeriodEnd?.toISOString().split('T')[0]
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update profile');
+      throw new Error('Failed to update profile');
     }
 
-    return { userId, ...profile } as UserProfile;
+    // Fetch updated profile
+    return getUserProfile(userId);
   } catch (error) {
     console.error('Update profile error:', error);
     throw error;
