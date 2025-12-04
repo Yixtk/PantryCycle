@@ -88,41 +88,69 @@ export default function App() {
   // ============================================
 
   const handleOnboardingComplete = async (data: {
-    lastPeriodStart: Date;
-    lastPeriodEnd: Date;
-    dietaryPreferences: string[];
-    allergies: string[];
-    selectedMeals: { [day: number]: string[] };
-  }) => {
-    if (!user) return;
+  lastPeriodStart: Date;
+  lastPeriodEnd: Date;
+  dietaryPreferences: string[];
+  allergies: string[];
+  selectedMeals: { [day: number]: string[] };
+}) => {
+  if (!user) return;
 
-    try {
-      // Create period record
-      await api.addPeriodRecord(user.id, {
-        startDate: data.lastPeriodStart,
-        endDate: data.lastPeriodEnd,
-        duration: Math.ceil(
-          (data.lastPeriodEnd.getTime() - data.lastPeriodStart.getTime()) / (1000 * 60 * 60 * 24)
-        ),
-      });
+  try {
+    // Helper function to get next Sunday
+    const getNextSunday = () => {
+      const today = new Date();
+      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      if (currentDay === 0) {
+        // Today is Sunday, use today
+        const sunday = new Date(today);
+        sunday.setHours(0, 0, 0, 0);
+        return sunday;
+      } else {
+        // Get next Sunday
+        const daysUntilSunday = 7 - currentDay;
+        const nextSunday = new Date(today);
+        nextSunday.setDate(today.getDate() + daysUntilSunday);
+        nextSunday.setHours(0, 0, 0, 0);
+        return nextSunday;
+      }
+    };
 
-      // Update profile
-      const profile = await api.updateUserProfile(user.id, {
-        lastPeriodStart: data.lastPeriodStart,
-        lastPeriodEnd: data.lastPeriodEnd,
-        dietaryPreferences: data.dietaryPreferences,
-        allergies: data.allergies.map(a => ({ type: a })),
-        selectedMeals: data.selectedMeals,
-        recipesPerWeek: 7,
-      });
+    const getSaturday = (sunday: Date) => {
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      saturday.setHours(23, 59, 59, 999);
+      return saturday;
+    };
 
-      setUserProfile(profile);
-      setAppState('calendar');
-    } catch (error) {
-      console.error('Onboarding failed:', error);
-      // TODO: Show error message to user
-    }
-  };
+    // Create first week block for upcoming Sunday
+    const nextSunday = getNextSunday();
+    const firstWeekBlock = {
+      id: `week-${Date.now()}`,
+      startDate: nextSunday,
+      endDate: getSaturday(nextSunday),
+      meals: data.selectedMeals
+    };
+
+    // Update profile with period info, preferences, AND first week block
+    const profile = await api.updateUserProfile(user.id, {
+      lastPeriodStart: data.lastPeriodStart,
+      lastPeriodEnd: data.lastPeriodEnd,
+      dietaryPreferences: data.dietaryPreferences,
+      allergies: data.allergies.map(a => ({ type: a })),
+      selectedMeals: data.selectedMeals,  // Keep as default
+      weekBlocks: [firstWeekBlock],       // Add first week
+      recipesPerWeek: 7,
+    });
+
+    setUserProfile(profile);
+    setAppState('calendar');
+  } catch (error) {
+    console.error('Onboarding failed:', error);
+    // TODO: Show error message to user
+  }
+};
 
   // ============================================
   // PROFILE UPDATE HANDLER
