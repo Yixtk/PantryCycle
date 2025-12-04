@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Plus, Check, X } from 'lucide-react';
 import { Recipe, UserProfile, PeriodRecord, WeekBlock } from '../types';
+import { Button } from './ui/button';
 
 interface CalendarPageProps {
   recipes: Recipe[];
@@ -17,45 +18,20 @@ const COLORS = {
   sageBg: '#f0f2ef',
   sageBgLight: '#e1e5de',
   
-  // Soft, harmonious colors that complement sage green
-  menstrual: '#f4c2c2',        // Soft coral pink
+  menstrual: '#f4c2c2',
   menstrualText: '#9b6b6b',
   
-  follicular: '#c8d5c0',       // Light sage/mint
+  follicular: '#c8d5c0',
   follicularText: '#5a6b54',
   
-  ovulation: '#b8d4d1',        // Soft teal
+  ovulation: '#b8d4d1',
   ovulationText: '#4a7370',
   
-  luteal: '#d4c5d8',           // Soft lavender
+  luteal: '#d4c5d8',
   lutealText: '#7a6b7e',
   
-  predictedPeriod: '#f8d4d4',  // Very light coral
+  predictedPeriod: '#f8d4d4',
   predictedText: '#b89090',
-};
-
-// Phase-specific nutritional guidance
-const PHASE_NUTRITION: Record<string, { foods: string[]; why: string; icon: string }> = {
-  menstrual: {
-    foods: ['Iron-rich foods', 'Leafy greens', 'Red meat', 'Lentils'],
-    why: 'Replenish iron lost during menstruation and reduce cramping',
-    icon: '🩸'
-  },
-  follicular: {
-    foods: ['Fresh vegetables', 'Lean proteins', 'Whole grains', 'Fermented foods'],
-    why: 'Support rising energy and metabolism as estrogen increases',
-    icon: '🌱'
-  },
-  ovulation: {
-    foods: ['Colorful vegetables', 'Fruits', 'Light proteins', 'Omega-3s'],
-    why: 'Support peak energy and manage inflammation',
-    icon: '✨'
-  },
-  luteal: {
-    foods: ['Complex carbs', 'Magnesium-rich foods', 'Dark chocolate', 'Root vegetables'],
-    why: 'Stabilize mood and energy as progesterone rises',
-    icon: '🌙'
-  }
 };
 
 export function CalendarPage({ 
@@ -67,21 +43,15 @@ export function CalendarPage({
 }: CalendarPageProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pastPeriods, setPastPeriods] = useState<PeriodRecord[]>([]);
-  const [isEditingPeriod, setIsEditingPeriod] = useState(false);
-  const [editStartDate, setEditStartDate] = useState('');
-  const [editEndDate, setEditEndDate] = useState('');
-  const [showQuickLog, setShowQuickLog] = useState(false);
+  
+  // Add Week Modal state
+  const [showAddWeekModal, setShowAddWeekModal] = useState(false);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
+  const [newWeekMeals, setNewWeekMeals] = useState<{ [day: number]: string[] }>({});
 
-  // Initialize past periods from user data
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
       setPastPeriods(userProfile.periodHistory);
-      console.log('📅 Calendar: Period History Loaded:', userProfile.periodHistory.length, 'periods');
-      console.log('📅 Most recent period:', {
-        start: userProfile.periodHistory[0].startDate,
-        end: userProfile.periodHistory[0].endDate,
-        duration: userProfile.periodHistory[0].duration
-      });
     } else if (userProfile.lastPeriodStart && userProfile.lastPeriodEnd) {
       const duration = Math.ceil(
         (userProfile.lastPeriodEnd.getTime() - userProfile.lastPeriodStart.getTime()) / (1000 * 60 * 60 * 24)
@@ -95,6 +65,75 @@ export function CalendarPage({
       }]);
     }
   }, [userProfile]);
+
+  // ========== HELPER FUNCTIONS ==========
+
+  const getSundayOfWeek = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    const sunday = new Date(d.setDate(diff));
+    sunday.setHours(0, 0, 0, 0);
+    return sunday;
+  };
+
+  const getSaturdayOfWeek = (sunday: Date) => {
+    const saturday = new Date(sunday);
+    saturday.setDate(saturday.getDate() + 6);
+    saturday.setHours(23, 59, 59, 999);
+    return saturday;
+  };
+
+  const formatDateShort = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getWeekBlockForDate = (date: Date): WeekBlock | null => {
+    if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
+      return null;
+    }
+
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+
+    for (const block of userProfile.weekBlocks) {
+      const start = new Date(block.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(block.endDate);
+      end.setHours(23, 59, 59, 999);
+
+      if (checkDate >= start && checkDate <= end) {
+        return block;
+      }
+    }
+
+    return null;
+  };
+
+  // Get available weeks to plan (next 8 weeks that aren't already planned)
+  const getAvailableWeeks = (): Date[] => {
+    const weeks: Date[] = [];
+    const today = new Date();
+    const currentWeekStart = getSundayOfWeek(today);
+
+    for (let i = 0; i < 8; i++) {
+      const weekStart = new Date(currentWeekStart);
+      weekStart.setDate(weekStart.getDate() + (i * 7));
+      
+      // Check if this week is already planned
+      const isPlanned = userProfile.weekBlocks?.some(block => {
+        const blockStart = new Date(block.startDate);
+        blockStart.setHours(0, 0, 0, 0);
+        return blockStart.getTime() === weekStart.getTime();
+      });
+
+      if (!isPlanned) {
+        weeks.push(weekStart);
+      }
+    }
+
+    return weeks;
+  };
 
   // ========== PERIOD CALCULATIONS ==========
 
@@ -110,57 +149,6 @@ export function CalendarPage({
     }
     
     return Math.round(cycles.reduce((a, b) => a + b, 0) / cycles.length);
-  };
-
-  const getCurrentCyclePhase = (): { phase: string; description: string; dayInCycle: number } => {
-    if (pastPeriods.length === 0) {
-      return { 
-        phase: 'No Data', 
-        description: 'Track your period in the Profile tab to get personalized meal recommendations', 
-        dayInCycle: 0 
-      };
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const lastPeriod = pastPeriods[0];
-    const daysSinceLastPeriod = Math.ceil(
-      (today.getTime() - lastPeriod.startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const avgCycleLength = calculateAverageCycleLength();
-
-    if (daysSinceLastPeriod >= 0 && daysSinceLastPeriod <= lastPeriod.duration) {
-      return {
-        phase: 'Menstrual',
-        description: 'Focus on iron-rich foods and stay hydrated.',
-        dayInCycle: daysSinceLastPeriod,
-      };
-    } else if (daysSinceLastPeriod > lastPeriod.duration && daysSinceLastPeriod <= 13) {
-      return {
-        phase: 'Follicular',
-        description: 'Great time for high-energy activities and trying new foods.',
-        dayInCycle: daysSinceLastPeriod,
-      };
-    } else if (daysSinceLastPeriod > 13 && daysSinceLastPeriod <= 16) {
-      return {
-        phase: 'Ovulation',
-        description: 'Enjoy complex carbs and protein-rich meals.',
-        dayInCycle: daysSinceLastPeriod,
-      };
-    } else if (daysSinceLastPeriod > 16 && daysSinceLastPeriod < avgCycleLength) {
-      return {
-        phase: 'Luteal',
-        description: 'Focus on magnesium and B-vitamin rich foods.',
-        dayInCycle: daysSinceLastPeriod,
-      };
-    } else {
-      return {
-        phase: 'Pre-Menstrual',
-        description: 'Your next period is approaching soon.',
-        dayInCycle: daysSinceLastPeriod,
-      };
-    }
   };
 
   const predictNextPeriod = (): { startDate: Date; endDate: Date } | null => {
@@ -179,23 +167,12 @@ export function CalendarPage({
     return { startDate: nextStart, endDate: nextEnd };
   };
 
-  const predictOvulation = (): Date | null => {
-    if (pastPeriods.length === 0) return null;
-    
-    const lastPeriod = pastPeriods[0];
-    const ovulationDay = new Date(lastPeriod.startDate);
-    ovulationDay.setDate(ovulationDay.getDate() + 14);
-
-    return ovulationDay;
-  };
-
   const getPhaseForDate = (date: Date): 'menstrual' | 'follicular' | 'ovulation' | 'luteal' | 'predicted' | null => {
     if (pastPeriods.length === 0) return null;
 
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
     
-    // Check if this date falls within any recorded period
     for (const period of pastPeriods) {
       const start = new Date(period.startDate);
       start.setHours(0, 0, 0, 0);
@@ -207,7 +184,6 @@ export function CalendarPage({
       }
     }
 
-    // Check if date is in predicted period
     const predicted = predictNextPeriod();
     if (predicted) {
       const predStart = new Date(predicted.startDate);
@@ -220,7 +196,6 @@ export function CalendarPage({
       }
     }
 
-    // Calculate which cycle day this is based on most recent period
     const lastPeriod = pastPeriods[0];
     const lastPeriodStart = new Date(lastPeriod.startDate);
     lastPeriodStart.setHours(0, 0, 0, 0);
@@ -229,23 +204,16 @@ export function CalendarPage({
       (checkDate.getTime() - lastPeriodStart.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    // Only show phases for dates after the last period started and before predicted next period
     if (daysSinceLastPeriodStart < 0) {
-      return null; // Before last period
+      return null;
     }
     
     const avgCycleLength = calculateAverageCycleLength();
     if (daysSinceLastPeriodStart >= avgCycleLength) {
-      return null; // After predicted next period should start
+      return null;
     }
     
-    const cycleDay = daysSinceLastPeriodStart + 1; // Day 1, Day 2, etc.
-    
-    // Phase determination based on cycle day
-    // Days 1-5: Menstrual (already handled above in pastPeriods check)
-    // Days 6-13: Follicular
-    // Days 14-16: Ovulation
-    // Days 17-28: Luteal
+    const cycleDay = daysSinceLastPeriodStart + 1;
     
     if (cycleDay >= 6 && cycleDay <= 13) {
       return 'follicular';
@@ -258,37 +226,67 @@ export function CalendarPage({
     return null;
   };
 
-  // ========== WEEK BLOCK HELPERS ==========
+  // ========== ADD WEEK MODAL FUNCTIONS ==========
 
-  // Helper to get Sunday of the week for a given date
-  const getSundayOfWeek = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff));
+  const handleOpenAddWeekModal = () => {
+    setNewWeekMeals({});
+    setSelectedWeekStart(null);
+    setShowAddWeekModal(true);
   };
 
-  // Find which weekBlock contains a specific date
-  const getWeekBlockForDate = (date: Date): WeekBlock | null => {
-    if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
-      return null;
-    }
+  const handleSelectWeek = (weekStart: Date) => {
+    setSelectedWeekStart(weekStart);
+  };
 
-    const checkDate = new Date(date);
-    checkDate.setHours(0, 0, 0, 0);
-
-    for (const block of userProfile.weekBlocks) {
-      const start = new Date(block.startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(block.endDate);
-      end.setHours(0, 0, 0, 0);
-
-      if (checkDate >= start && checkDate <= end) {
-        return block;
+  const toggleMealForDay = (day: number, meal: string) => {
+    setNewWeekMeals(prev => {
+      const dayMeals = prev[day] || [];
+      const newDayMeals = dayMeals.includes(meal)
+        ? dayMeals.filter((m) => m !== meal)
+        : [...dayMeals, meal];
+      
+      if (newDayMeals.length === 0) {
+        const { [day]: _, ...rest } = prev;
+        return rest;
       }
+      
+      return { ...prev, [day]: newDayMeals };
+    });
+  };
+
+  const getTotalMealsSelected = () => {
+    return Object.values(newWeekMeals).reduce((total, meals) => total + meals.length, 0);
+  };
+
+  const handleSaveWeek = () => {
+    if (!selectedWeekStart || getTotalMealsSelected() === 0) {
+      return;
     }
 
-    return null;
+    const newBlock: WeekBlock = {
+      id: `week-${Date.now()}`,
+      startDate: selectedWeekStart,
+      endDate: getSaturdayOfWeek(selectedWeekStart),
+      meals: newWeekMeals,
+    };
+
+    const updatedWeekBlocks = [...(userProfile.weekBlocks || []), newBlock];
+
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        weekBlocks: updatedWeekBlocks,
+      });
+    }
+
+    setShowAddWeekModal(false);
+    setNewWeekMeals({});
+    setSelectedWeekStart(null);
+  };
+
+  const handleCancelAddWeek = () => {
+    setShowAddWeekModal(false);
+    setNewWeekMeals({});
+    setSelectedWeekStart(null);
   };
 
   // ========== CALENDAR GENERATION ==========
@@ -319,67 +317,39 @@ export function CalendarPage({
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
-  // Assign recipes to days based on week blocks OR default schedule
   const getRecipesForDay = (day: number): { meal: string; recipe: Recipe }[] => {
     const checkDate = new Date(year, month, day);
-    const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = checkDate.getDay();
     
-    // First check if there's a weekBlock for this date
+    // ONLY use week blocks - no fallback to default schedule
     const weekBlock = getWeekBlockForDate(checkDate);
     
-    let mealsForDay: string[] = [];
-    
-    if (weekBlock) {
-      // Use meals from the specific week block
-      mealsForDay = weekBlock.meals[dayOfWeek] || [];
-    } else {
-      // Fall back to default schedule
-      mealsForDay = userProfile.selectedMeals[dayOfWeek] || [];
+    if (!weekBlock) {
+      return []; // No week block = no meals
     }
     
-    // If no meals selected for this day, return empty
-    if (mealsForDay.length === 0) {
-      return [];
-    }
+    const mealsForDay = weekBlock.meals[dayOfWeek] || [];
     
-    if (recipes.length === 0) {
+    if (mealsForDay.length === 0 || recipes.length === 0) {
       return [];
     }
 
-    // Create a flattened list of all meals in the week (for recipe distribution)
     const allMealsInWeek: { day: number; meal: string }[] = [];
-    
-    if (weekBlock) {
-      // Use week block meals
-      for (let d = 0; d < 7; d++) {
-        const meals = weekBlock.meals[d] || [];
-        meals.forEach(meal => {
-          allMealsInWeek.push({ day: d, meal });
-        });
-      }
-    } else {
-      // Use default schedule
-      for (let d = 0; d < 7; d++) {
-        const meals = userProfile.selectedMeals[d] || [];
-        meals.forEach(meal => {
-          allMealsInWeek.push({ day: d, meal });
-        });
-      }
+    for (let d = 0; d < 7; d++) {
+      const meals = weekBlock.meals[d] || [];
+      meals.forEach(meal => {
+        allMealsInWeek.push({ day: d, meal });
+      });
     }
     
-    // Sort by day to maintain consistent ordering
     allMealsInWeek.sort((a, b) => a.day - b.day);
     
-    // Find which week of the month we're in
     const weekNumber = Math.floor((day - 1) / 7);
     
-    // Assign recipes to this day's meals
     const result: { meal: string; recipe: Recipe }[] = [];
     mealsForDay.forEach(meal => {
-      // Find the index of this specific meal in the week pattern
       const mealIndexInWeek = allMealsInWeek.findIndex(m => m.day === dayOfWeek && m.meal === meal);
       if (mealIndexInWeek !== -1) {
-        // Calculate the recipe index based on week number and position in week
         const recipeIndex = (weekNumber * allMealsInWeek.length + mealIndexInWeek) % recipes.length;
         result.push({ meal, recipe: recipes[recipeIndex] });
       }
@@ -388,68 +358,11 @@ export function CalendarPage({
     return result;
   };
 
-  // Get period status for a day
-  const getDayStatus = (day: number) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const checkDate = new Date(year, month, day);
-    checkDate.setHours(0, 0, 0, 0);
-
-    let isPastPeriod = false;
-    let isPredictedPeriod = false;
-    let isOvulation = false;
-
-    // Check past periods
-    pastPeriods.forEach(period => {
-      const start = new Date(period.startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(period.endDate);
-      end.setHours(0, 0, 0, 0);
-      
-      if (checkDate >= start && checkDate <= end) {
-        isPastPeriod = true;
-      }
-    });
-
-    // Check predicted period
-    const predicted = predictNextPeriod();
-    if (predicted) {
-      const predStart = new Date(predicted.startDate);
-      predStart.setHours(0, 0, 0, 0);
-      const predEnd = new Date(predicted.endDate);
-      predEnd.setHours(0, 0, 0, 0);
-      
-      if (checkDate >= predStart && checkDate <= predEnd) {
-        isPredictedPeriod = true;
-      }
-    }
-
-    // Check ovulation
-    const ovulationDate = predictOvulation();
-    if (ovulationDate) {
-      const ovDate = new Date(ovulationDate);
-      ovDate.setHours(0, 0, 0, 0);
-      
-      if (checkDate.getTime() === ovDate.getTime()) {
-        isOvulation = true;
-      }
-    }
-
-    return {
-      isToday: checkDate.getTime() === today.getTime(),
-      isPastPeriod,
-      isPredictedPeriod,
-      isOvulation,
-    };
-  };
-
   const days = [];
-  // Empty cells before first day
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(<div key={`empty-${i}`} className="aspect-square" />);
   }
   
-  // Days of month
   for (let day = 1; day <= daysInMonth; day++) {
     const recipesForDay = getRecipesForDay(day);
     const checkDate = new Date(year, month, day);
@@ -460,7 +373,6 @@ export function CalendarPage({
     checkDate.setHours(0, 0, 0, 0);
     const isToday = checkDate.getTime() === today.getTime();
 
-    // CHANGED: Only apply phase colors if there are meals for this day
     const hasMeals = recipesForDay.length > 0;
 
     let bgColor = 'white';
@@ -469,7 +381,6 @@ export function CalendarPage({
     let borderWidth = '1px';
     let borderStyle = 'solid';
 
-    // Apply phase colors ONLY if there are meals
     if (hasMeals && phase === 'menstrual') {
       bgColor = COLORS.menstrual;
       textColor = COLORS.menstrualText;
@@ -488,7 +399,6 @@ export function CalendarPage({
       borderStyle = 'dashed';
     }
 
-    // Today styling
     if (isToday) {
       borderColor = COLORS.sage;
       borderWidth = '2px';
@@ -508,7 +418,6 @@ export function CalendarPage({
           borderStyle: borderStyle
         }}
       >
-        {/* Day number */}
         <div 
           className="text-[10px] text-center py-0.5" 
           style={{ 
@@ -520,29 +429,28 @@ export function CalendarPage({
           {day}
         </div>
         
-        {/* Meals section */}
         {recipesForDay.length > 0 ? (
           <div className="flex-1 flex flex-col">
             {recipesForDay.map((mealRecipe, idx) => {
               const mealColors = {
-                breakfast: '#fde68a',  // soft amber
-                lunch: '#bfdbfe',      // soft light blue
-                dinner: '#ddd6fe'      // soft lavender
+                breakfast: '#fde68a',
+                lunch: '#bfdbfe',
+                dinner: '#ddd6fe'
               };
               const mealTextColors = {
-                breakfast: '#78350f',  // amber text
-                lunch: '#1e3a8a',      // blue text
-                dinner: '#5b21b6'      // violet text
+                breakfast: '#78350f',
+                lunch: '#1e3a8a',
+                dinner: '#5b21b6'
               };
               const mealColor = mealColors[mealRecipe.meal as keyof typeof mealColors] || COLORS.sage;
-              const textColor = mealTextColors[mealRecipe.meal as keyof typeof mealTextColors] || '#fff';
+              const mealTextColor = mealTextColors[mealRecipe.meal as keyof typeof mealTextColors] || '#fff';
               
               return (
                 <button
                   key={idx}
                   onClick={() => onRecipeClick(mealRecipe.recipe)}
                   className="flex-1 text-[10px] transition-all hover:opacity-80 flex items-center justify-center font-medium"
-                  style={{ backgroundColor: mealColor, color: textColor }}
+                  style={{ backgroundColor: mealColor, color: mealTextColor }}
                   title={`${mealRecipe.meal.charAt(0).toUpperCase() + mealRecipe.meal.slice(1)}: ${mealRecipe.recipe.name}`}
                 >
                   {mealRecipe.meal.charAt(0).toUpperCase()}
@@ -557,56 +465,26 @@ export function CalendarPage({
     );
   }
 
-  const currentPhase = getCurrentCyclePhase();
-  const nextPeriod = predictNextPeriod();
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const formatDateInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const handleEditPeriod = () => {
-    if (pastPeriods.length > 0) {
-      setEditStartDate(formatDateInput(pastPeriods[0].startDate));
-      setEditEndDate(formatDateInput(pastPeriods[0].endDate));
-    }
-    setIsEditingPeriod(true);
-  };
-
-  const handleSavePeriod = () => {
-    if (editStartDate && editEndDate && onUpdateProfile) {
-      const start = new Date(editStartDate);
-      const end = new Date(editEndDate);
-      
-      // Update the profile with new dates
-      onUpdateProfile({
-        lastPeriodStart: start,
-        lastPeriodEnd: end,
-      });
-      
-      setIsEditingPeriod(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingPeriod(false);
-    setEditStartDate('');
-    setEditEndDate('');
-  };
+  const availableWeeks = getAvailableWeeks();
 
   return (
-    <div className="min-h-screen flex flex-col hide-scrollbar" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
-      <div className="flex-1 p-4 pb-20 overflow-y-auto hide-scrollbar">
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
+      <div className="flex-1 p-4 pb-20 overflow-y-auto">
         
-        {/* Clean Header */}
-        <div className="mb-6 pt-2">
-          <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
-          <p className="text-sm text-slate-500">Your weekly meal plan</p>
+        {/* Header with Add Week Button */}
+        <div className="mb-6 pt-2 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
+            <p className="text-sm text-slate-500">Your weekly meal plan</p>
+          </div>
+          <Button
+            onClick={handleOpenAddWeekModal}
+            className="h-9 text-white"
+            style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Week
+          </Button>
         </div>
 
         {/* Calendar */}
@@ -623,7 +501,6 @@ export function CalendarPage({
             </button>
           </div>
 
-          {/* Day labels */}
           <div className="grid grid-cols-7 gap-1.5 mb-2">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
               <div key={i} className="text-center text-[10px] text-slate-500 font-medium uppercase">
@@ -632,13 +509,12 @@ export function CalendarPage({
             ))}
           </div>
 
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1.5">
             {days}
           </div>
         </div>
 
-        {/* Legend - only meal types */}
+        {/* Legend */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <h3 className="text-sm mb-3" style={{ color: COLORS.sageDark }}>Meal Types</h3>
           <div className="flex gap-4 text-xs">
@@ -658,8 +534,154 @@ export function CalendarPage({
         </div>
       </div>
 
+      {/* Add Week Modal */}
+      {showAddWeekModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl" style={{ color: COLORS.sageDark }}>Plan a Week</h2>
+                <button
+                  onClick={handleCancelAddWeek}
+                  className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+
+              {/* Step 1: Select Week */}
+              {!selectedWeekStart && (
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Select which week you'd like to plan meals for:
+                  </p>
+                  <div className="space-y-2">
+                    {availableWeeks.length > 0 ? (
+                      availableWeeks.map((weekStart) => {
+                        const weekEnd = getSaturdayOfWeek(weekStart);
+                        return (
+                          <button
+                            key={weekStart.getTime()}
+                            onClick={() => handleSelectWeek(weekStart)}
+                            className="w-full p-4 rounded-xl border-2 transition-all hover:shadow-sm text-left"
+                            style={{
+                              borderColor: COLORS.sageBgLight,
+                              backgroundColor: 'white'
+                            }}
+                          >
+                            <p className="text-sm" style={{ color: COLORS.sageDark }}>
+                              {formatDateShort(weekStart)} - {formatDateShort(weekEnd)}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {weekStart.toLocaleDateString('en-US', { year: 'numeric' })}
+                            </p>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-slate-500">
+                          You've planned all available weeks!
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Manage existing weeks in your Profile
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Select Meals */}
+              {selectedWeekStart && (
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Week of {formatDateShort(selectedWeekStart)} - {formatDateShort(getSaturdayOfWeek(selectedWeekStart))}
+                  </p>
+
+                  {/* Meal Selection Grid */}
+                  <div className="mb-6">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-4 gap-2 mb-3 pb-2 border-b-2" style={{ borderColor: COLORS.sageBgLight }}>
+                      <div></div>
+                      <div className="text-center text-xs" style={{ color: COLORS.sageDark }}>B</div>
+                      <div className="text-center text-xs" style={{ color: COLORS.sageDark }}>L</div>
+                      <div className="text-center text-xs" style={{ color: COLORS.sageDark }}>D</div>
+                    </div>
+
+                    {/* Day Rows */}
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Sun', value: 0 },
+                        { label: 'Mon', value: 1 },
+                        { label: 'Tue', value: 2 },
+                        { label: 'Wed', value: 3 },
+                        { label: 'Thu', value: 4 },
+                        { label: 'Fri', value: 5 },
+                        { label: 'Sat', value: 6 },
+                      ].map((day) => (
+                        <div key={day.value} className="grid grid-cols-4 gap-2 items-center">
+                          <div className="text-sm" style={{ color: COLORS.sageDark }}>{day.label}</div>
+                          {['breakfast', 'lunch', 'dinner'].map((meal) => (
+                            <button
+                              key={meal}
+                              onClick={() => toggleMealForDay(day.value, meal)}
+                              className="h-10 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
+                              style={{
+                                borderColor: newWeekMeals[day.value]?.includes(meal) ? COLORS.sage : '#e2e8f0',
+                                backgroundColor: newWeekMeals[day.value]?.includes(meal) ? COLORS.sageBgLight : 'white'
+                              }}
+                            >
+                              {newWeekMeals[day.value]?.includes(meal) && (
+                                <Check className="h-4 w-4" style={{ color: COLORS.sage }} />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="rounded-2xl p-4 mb-6" style={{ backgroundColor: COLORS.sageBg }}>
+                    <p className="text-sm text-center" style={{ color: COLORS.sageDark }}>
+                      {getTotalMealsSelected()} total meals selected
+                    </p>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => setSelectedWeekStart(null)}
+                      variant="outline"
+                      className="flex-1 h-11"
+                      style={{ borderColor: COLORS.sage, color: COLORS.sageDark }}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleSaveWeek}
+                      disabled={getTotalMealsSelected() === 0}
+                      className="flex-1 h-11 text-white"
+                      style={{ 
+                        background: getTotalMealsSelected() > 0 
+                          ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
+                          : '#d1d5db'
+                      }}
+                    >
+                      Save Week
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 safe-area-inset-bottom">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3">
         <div className="flex justify-around max-w-md mx-auto">
           <button
             onClick={() => onNavigate('calendar')}
