@@ -11,7 +11,12 @@ export interface User {
   phone?: string;
   birthday?: Date;
 }
-
+export interface WeekBlock {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  meals: { [day: number]: string[] }; // Same format as selectedMeals
+}
 export interface UserProfile {
   userId: string;
   // Period tracking
