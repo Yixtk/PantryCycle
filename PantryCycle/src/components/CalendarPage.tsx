@@ -111,6 +111,7 @@ export function CalendarPage({
   };
 
   // Get available weeks to plan (next 8 weeks that aren't already planned)
+  // Get available weeks to plan (next 8 weeks that aren't already planned)
   const getAvailableWeeks = (): Date[] => {
     const weeks: Date[] = [];
     const today = new Date();
@@ -119,13 +120,21 @@ export function CalendarPage({
     for (let i = 0; i < 8; i++) {
       const weekStart = new Date(currentWeekStart);
       weekStart.setDate(weekStart.getDate() + (i * 7));
-      
-      // Check if this week is already planned
+    
+    // Check if this week is already planned
+    // SAFETY CHECK: Make sure weekBlocks exists and has valid dates
       const isPlanned = userProfile.weekBlocks?.some(block => {
-        const blockStart = new Date(block.startDate);
+      // Ensure block.startDate is a Date object
+        const blockStart = block.startDate instanceof Date 
+          ? new Date(block.startDate) 
+          : new Date(block.startDate);
         blockStart.setHours(0, 0, 0, 0);
-        return blockStart.getTime() === weekStart.getTime();
-      });
+      
+        const weekStartCopy = new Date(weekStart);
+        weekStartCopy.setHours(0, 0, 0, 0);
+      
+        return blockStart.getTime() === weekStartCopy.getTime();
+      }) || false;
 
       if (!isPlanned) {
         weeks.push(weekStart);
