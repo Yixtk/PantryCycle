@@ -82,20 +82,23 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     );
   };
 
+  // In OnboardingPage.tsx, where you handle the final submission:
+
   const handleComplete = () => {
-    if (lastPeriodDate && lastPeriodEndDate) {
-      const finalAllergies = otherAllergy.trim() 
-        ? [...allergies, otherAllergy.trim()] 
-        : allergies;
-      
-      onComplete({ 
-        lastPeriodStart: lastPeriodDate, 
-        lastPeriodEnd: lastPeriodEndDate, 
-        dietaryPreferences: preferences, 
-        allergies: finalAllergies,
-        selectedMeals
-      });
-    }
+    // Parse dates correctly in local timezone
+    const parseLocalDate = (dateString: string): Date => {
+      const [year, month, day] = dateString.split('-').map(Number);
+      // Create date at noon local time to avoid timezone issues
+      return new Date(year, month - 1, day, 12, 0, 0);
+    };
+
+    onComplete({
+      lastPeriodStart: parseLocalDate(startDate), // startDate is your state variable
+      lastPeriodEnd: parseLocalDate(endDate),     // endDate is your state variable
+      dietaryPreferences: selectedPreferences,
+      allergies: selectedAllergies,
+      selectedMeals: meals
+    });
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
