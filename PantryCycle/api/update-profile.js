@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userId, dietaryPreferences, allergies, selectedMeals, lastPeriodStart, lastPeriodEnd } = req.body;
+    const { userId, dietaryPreferences, allergies, selectedMeals, lastPeriodStart, lastPeriodEnd, weekBlocks } = req.body;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID required' });
@@ -77,10 +77,16 @@ export default async function handler(req, res) {
       values.push(otherAllergies.length > 0 ? JSON.stringify({ allergies: otherAllergies }) : '{}');
     }
 
-    // Selected meals (JSON)
+    // Selected meals (JSON) - default schedule
     if (selectedMeals !== undefined) {
       setParts.push(`selected_meals = $${valueIndex++}`);
       values.push(JSON.stringify(selectedMeals));
+    }
+
+    // Week blocks (JSON) - custom weekly schedules
+    if (weekBlocks !== undefined) {
+      setParts.push(`week_blocks = $${valueIndex++}`);
+      values.push(JSON.stringify(weekBlocks));
     }
 
     // Period dates
