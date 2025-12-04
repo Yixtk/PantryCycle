@@ -52,15 +52,67 @@ export default function App() {
   // ============================================
 
   const handleLogin = async (username: string, password: string) => {
-    try {
-      const loggedInUser = await api.loginUser(username, password);
-      setUser(loggedInUser);
-      setAppState('calendar');
-    } catch (error) {
-      console.error('Login failed:', error);
-      // TODO: Show error message to user
+  try {
+    const loggedInUser = await api.loginUser(username, password);
+    setUser(loggedInUser);
+    
+    // Load user profile to check if migration is needed
+    const profile = await api.getUserProfile(loggedInUser.id);
+    
+    // Migration: If user has selectedMeals but no weekBlocks, create one
+    if (profile.selectedMeals && Object.keys(profile.selectedMeals).length > 0 && 
+        (!profile.weekBlocks || profile.weekBlocks.length === 0)) {
+      
+      console.log('Migrating user to week blocks...');
+      
+      // Helper functions
+      const getNextSunday = () => {
+        const today = new Date();
+        const currentDay = today.getDay();
+        
+        if (currentDay === 0) {
+          const sunday = new Date(today);
+          sunday.setHours(0, 0, 0, 0);
+          return sunday;
+        } else {
+          const daysUntilSunday = 7 - currentDay;
+          const nextSunday = new Date(today);
+          nextSunday.setDate(today.getDate() + daysUntilSunday);
+          nextSunday.setHours(0, 0, 0, 0);
+          return nextSunday;
+        }
+      };
+
+      const getSaturday = (sunday: Date) => {
+        const saturday = new Date(sunday);
+        saturday.setDate(sunday.getDate() + 6);
+        saturday.setHours(23, 59, 59, 999);
+        return saturday;
+      };
+
+      // Create first week block for next Sunday
+      const nextSunday = getNextSunday();
+      const firstWeekBlock = {
+        id: `week-${Date.now()}`,
+        startDate: nextSunday,
+        endDate: getSaturday(nextSunday),
+        meals: profile.selectedMeals
+      };
+
+      // Save the week block
+      await api.updateUserProfile(loggedInUser.id, {
+        weekBlocks: [firstWeekBlock]
+      });
+      
+      console.log('Migration complete! Week block created for', nextSunday);
     }
-  };
+    
+    setAppState('calendar');
+  } catch (error) {
+    console.error('Login failed:', error);
+    // TODO: Show error message to user
+  }
+};
 
   const handleCreateAccount = async (accountData: {
   username: string;
