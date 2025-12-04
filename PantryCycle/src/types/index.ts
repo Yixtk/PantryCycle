@@ -19,17 +19,13 @@ export interface WeekBlock {
 }
 export interface UserProfile {
   userId: string;
-  // Period tracking
   lastPeriodStart?: Date;
   lastPeriodEnd?: Date;
-  periodHistory: PeriodRecord[];
-  
-  // Dietary preferences
+  periodHistory?: PeriodRecord[];
   dietaryPreferences: string[];
-  allergies: Allergy[];
-  
-  // Meal preferences
-  selectedMeals: { [day: number]: string[] }; // { 0: ['breakfast', 'lunch'], 1: ['dinner'], ... }
+  allergies: { type: string }[];
+  selectedMeals: { [day: number]: string[] }; // Default schedule
+  weekBlocks?: WeekBlock[]; // ← ADD THIS
   recipesPerWeek: number;
 }
 
