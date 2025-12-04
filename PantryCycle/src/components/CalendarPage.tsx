@@ -10,7 +10,24 @@ interface CalendarPageProps {
   onNavigate: (page: string) => void;
   onUpdateProfile?: (updates: Partial<UserProfile>) => void;
 }
+export function CalendarPage({ 
+  recipes, 
+  userProfile,
+  onRecipeClick, 
+  onNavigate, 
+  onUpdateProfile
+}: CalendarPageProps) {
+  // DEBUG LOGGING
+  console.log('🔍 CalendarPage Debug:', {
+    userProfile: userProfile,
+    hasWeekBlocks: !!userProfile.weekBlocks,
+    weekBlocksLength: userProfile.weekBlocks?.length,
+    weekBlocks: userProfile.weekBlocks,
+    firstBlock: userProfile.weekBlocks?.[0]
+  });
 
+  const [currentDate, setCurrentDate] = useState(new Date());
+  // ... rest of code
 const COLORS = {
   sage: '#8a9a84',
   sageDark: '#5a6b54',
@@ -122,38 +139,58 @@ export function CalendarPage({
 
   // Get available weeks to plan (next 8 weeks that aren't already planned)
   // Get available weeks to plan (next 8 weeks that aren't already planned)
-  const getAvailableWeeks = (): Date[] => {
-    const weeks: Date[] = [];
-    const today = new Date();
-    const currentWeekStart = getSundayOfWeek(today);
+  // Get available weeks to plan (next 8 weeks that aren't already planned)
+const getAvailableWeeks = (): Date[] => {
+  const weeks: Date[] = [];
+  const today = new Date();
+  const currentWeekStart = getSundayOfWeek(today);
 
+  // If weekBlocks doesn't exist or is empty, return all 8 weeks
+  if (!userProfile.weekBlocks || !Array.isArray(userProfile.weekBlocks)) {
     for (let i = 0; i < 8; i++) {
       const weekStart = new Date(currentWeekStart);
       weekStart.setDate(weekStart.getDate() + (i * 7));
+      weeks.push(weekStart);
+    }
+    return weeks;
+  }
+
+  for (let i = 0; i < 8; i++) {
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setDate(weekStart.getDate() + (i * 7));
+    weekStart.setHours(0, 0, 0, 0);
     
     // Check if this week is already planned
-    // SAFETY CHECK: Make sure weekBlocks exists and has valid dates
-      const isPlanned = userProfile.weekBlocks?.some(block => {
-      // Ensure block.startDate is a Date object
+    let isPlanned = false;
+    
+    try {
+      for (const block of userProfile.weekBlocks) {
+        if (!block || !block.startDate) {
+          console.warn('Invalid week block:', block);
+          continue;
+        }
+        
         const blockStart = block.startDate instanceof Date 
           ? new Date(block.startDate) 
           : new Date(block.startDate);
         blockStart.setHours(0, 0, 0, 0);
-      
-        const weekStartCopy = new Date(weekStart);
-        weekStartCopy.setHours(0, 0, 0, 0);
-      
-        return blockStart.getTime() === weekStartCopy.getTime();
-      }) || false;
-
-      if (!isPlanned) {
-        weeks.push(weekStart);
+        
+        if (blockStart.getTime() === weekStart.getTime()) {
+          isPlanned = true;
+          break;
+        }
       }
+    } catch (error) {
+      console.error('Error checking week blocks:', error);
     }
 
-    return weeks;
-  };
+    if (!isPlanned) {
+      weeks.push(weekStart);
+    }
+  }
 
+  return weeks;
+};
   // ========== PERIOD CALCULATIONS ==========
 
   const calculateAverageCycleLength = (): number => {
