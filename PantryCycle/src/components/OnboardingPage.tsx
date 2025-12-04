@@ -82,35 +82,38 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     );
   };
 
-  // In OnboardingPage.tsx, where you handle the final submission:
-
-  const handleComplete = () => {
-    // Parse dates correctly in local timezone
-    const parseLocalDate = (dateString: string): Date => {
-      const [year, month, day] = dateString.split('-').map(Number);
-      // Create date at noon local time to avoid timezone issues
-      return new Date(year, month - 1, day, 12, 0, 0);
-    };
-
-    onComplete({
-      lastPeriodStart: parseLocalDate(startDate), // startDate is your state variable
-      lastPeriodEnd: parseLocalDate(endDate),     // endDate is your state variable
-      dietaryPreferences: selectedPreferences,
-      allergies: selectedAllergies,
-      selectedMeals: meals
-    });
-  };
-
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
-      setLastPeriodDate(new Date(e.target.value));
+      // Create date at noon local time to avoid timezone issues
+      const [year, month, day] = e.target.value.split('-').map(Number);
+      setLastPeriodDate(new Date(year, month - 1, day, 12, 0, 0));
     }
   };
 
   const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
-      setLastPeriodEndDate(new Date(e.target.value));
+      // Create date at noon local time to avoid timezone issues
+      const [year, month, day] = e.target.value.split('-').map(Number);
+      setLastPeriodEndDate(new Date(year, month - 1, day, 12, 0, 0));
     }
+  };
+
+  const handleComplete = () => {
+    if (!lastPeriodDate || !lastPeriodEndDate) return;
+
+    // Collect all allergies including "other"
+    const allAllergies = [...allergies];
+    if (otherAllergy.trim()) {
+      allAllergies.push(...otherAllergy.split(',').map(a => a.trim()).filter(a => a));
+    }
+
+    onComplete({
+      lastPeriodStart: lastPeriodDate,
+      lastPeriodEnd: lastPeriodEndDate,
+      dietaryPreferences: preferences,
+      allergies: allAllergies,
+      selectedMeals: selectedMeals
+    });
   };
 
   const getTotalMealsCount = () => {
