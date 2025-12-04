@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         start_date,
         end_date,
         selected_meals,
+        week_blocks,
         is_vegetarian,
         is_vegan,
         is_gluten_free,
@@ -95,29 +96,51 @@ export default async function handler(req, res) {
       }
     }
 
+    // Parse week blocks and convert date strings to Date objects
+    let weekBlocks = [];
+    if (user.week_blocks) {
+      try {
+        const blocks = typeof user.week_blocks === 'string' 
+          ? JSON.parse(user.week_blocks) 
+          : user.week_blocks;
+        
+        weekBlocks = blocks.map(block => ({
+          ...block,
+          startDate: new Date(block.startDate),
+          endDate: new Date(block.endDate)
+        }));
+      } catch (e) {
+        console.error('Error parsing week blocks:', e);
+        weekBlocks = [];
+      }
+    }
+
     // Build period history
     const periodHistory = [];
     if (user.start_date && user.end_date) {
+      const startDate = new Date(user.start_date);
+      const endDate = new Date(user.end_date);
       const duration = Math.ceil(
-        (new Date(user.end_date) - new Date(user.start_date)) / (1000 * 60 * 60 * 24)
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
       periodHistory.push({
         id: '1',
         userId: userId,
-        startDate: user.start_date,
-        endDate: user.end_date,
+        startDate: startDate,
+        endDate: endDate,
         duration: duration
       });
     }
 
     const profile = {
       userId: userId,
-      lastPeriodStart: user.start_date,
-      lastPeriodEnd: user.end_date,
+      lastPeriodStart: user.start_date ? new Date(user.start_date) : undefined,
+      lastPeriodEnd: user.end_date ? new Date(user.end_date) : undefined,
       periodHistory: periodHistory,
       dietaryPreferences: dietaryPreferences,
       allergies: allergies,
       selectedMeals: user.selected_meals || {},
+      weekBlocks: weekBlocks,  // Now properly converted to Date objects
       recipesPerWeek: 7
     };
 
