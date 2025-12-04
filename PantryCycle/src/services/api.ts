@@ -116,6 +116,7 @@ export async function updateUserProfile(userId: string, profile: Partial<UserPro
         dietaryPreferences: profile.dietaryPreferences,
         allergies: profile.allergies?.map(a => a.type),
         selectedMeals: profile.selectedMeals,
+        weekBlocks: profile.weekBlocks,
         lastPeriodStart: profile.lastPeriodStart?.toISOString().split('T')[0],
         lastPeriodEnd: profile.lastPeriodEnd?.toISOString().split('T')[0]
       })
