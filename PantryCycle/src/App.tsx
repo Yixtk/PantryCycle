@@ -183,8 +183,8 @@ export default function App() {
       meals: data.selectedMeals
     };
 
-    // IMPORTANT: Save period dates AND week block
-    const profile = await api.updateUserProfile(user.id, {
+    // Save everything to database
+    await api.updateUserProfile(user.id, {
       lastPeriodStart: data.lastPeriodStart,
       lastPeriodEnd: data.lastPeriodEnd,
       dietaryPreferences: data.dietaryPreferences,
@@ -194,7 +194,10 @@ export default function App() {
       recipesPerWeek: 7,
     });
 
-    setUserProfile(profile);
+    // NOW LOAD THE DATA - This is what was missing!
+    await loadUserData(user.id);
+
+    // Navigate to calendar
     setAppState('calendar');
   } catch (error) {
     console.error('Onboarding failed:', error);
