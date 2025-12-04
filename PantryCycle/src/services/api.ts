@@ -87,20 +87,31 @@ export async function createUser(
 
 export async function getUserProfile(userId: string): Promise<UserProfile> {
   try {
-    const response = await fetch(`/api/get-profile?userId=${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
+    const response = await fetch(`/api/get-profile?userId=${userId}`);
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to get profile');
+      throw new Error('Failed to get profile');
     }
-
+    
     const data = await response.json();
-    return data.profile;
+    const profile = data.profile;
+    
+    // Convert date strings to Date objects
+    return {
+      ...profile,
+      lastPeriodStart: profile.lastPeriodStart ? new Date(profile.lastPeriodStart) : undefined,
+      lastPeriodEnd: profile.lastPeriodEnd ? new Date(profile.lastPeriodEnd) : undefined,
+      periodHistory: profile.periodHistory?.map((record: any) => ({
+        ...record,
+        startDate: new Date(record.startDate),
+        endDate: new Date(record.endDate)
+      })) || [],
+      weekBlocks: profile.weekBlocks?.map((block: any) => ({
+        ...block,
+        startDate: new Date(block.startDate),
+        endDate: new Date(block.endDate)
+      })) || []
+    };
   } catch (error) {
     console.error('Get profile error:', error);
     throw error;
