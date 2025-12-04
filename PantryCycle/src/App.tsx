@@ -149,15 +149,22 @@ export default function App() {
   if (!user) return;
 
   try {
+    console.log('Starting onboarding completion...', {
+      periodStart: data.lastPeriodStart,
+      periodEnd: data.lastPeriodEnd,
+      mealsSelected: Object.keys(data.selectedMeals).length
+    });
+
     // Helper functions
-    const getNextSunday = () => {
+    const getUpcomingSunday = () => {
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const currentDay = today.getDay();
       
+      // If today is Sunday, use today
+      // Otherwise, get NEXT Sunday
       if (currentDay === 0) {
-        const sunday = new Date(today);
-        sunday.setHours(0, 0, 0, 0);
-        return sunday;
+        return today;
       } else {
         const daysUntilSunday = 7 - currentDay;
         const nextSunday = new Date(today);
@@ -174,19 +181,29 @@ export default function App() {
       return saturday;
     };
 
-    // Create first week block
-    const nextSunday = getNextSunday();
+    // Create first week block for upcoming Sunday
+    const upcomingSunday = getUpcomingSunday();
     const firstWeekBlock = {
       id: `week-${Date.now()}`,
-      startDate: nextSunday,
-      endDate: getSaturday(nextSunday),
+      startDate: upcomingSunday,
+      endDate: getSaturday(upcomingSunday),
       meals: data.selectedMeals
     };
 
+    console.log('Creating week block:', {
+      start: upcomingSunday.toDateString(),
+      end: getSaturday(upcomingSunday).toDateString(),
+      mealsCount: Object.values(data.selectedMeals).flat().length
+    });
+
+    // Format dates as strings to avoid timezone issues
+    const startDateString = data.lastPeriodStart.toISOString().split('T')[0];
+    const endDateString = data.lastPeriodEnd.toISOString().split('T')[0];
+
     // Save everything to database
     await api.updateUserProfile(user.id, {
-      lastPeriodStart: data.lastPeriodStart,
-      lastPeriodEnd: data.lastPeriodEnd,
+      lastPeriodStart: new Date(startDateString), // Use date string
+      lastPeriodEnd: new Date(endDateString),     // Use date string
       dietaryPreferences: data.dietaryPreferences,
       allergies: data.allergies.map(a => ({ type: a })),
       selectedMeals: data.selectedMeals,
@@ -194,8 +211,12 @@ export default function App() {
       recipesPerWeek: 7,
     });
 
-    // NOW LOAD THE DATA - This is what was missing!
+    console.log('Profile updated successfully');
+
+    // Load the data from database
     await loadUserData(user.id);
+
+    console.log('User data loaded');
 
     // Navigate to calendar
     setAppState('calendar');
