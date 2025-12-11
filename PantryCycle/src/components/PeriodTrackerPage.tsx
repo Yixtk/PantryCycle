@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Droplet, TrendingUp, Activity, Edit2, Check, X, Home, BookOpen, User as UserIcon, Clock, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Droplet, TrendingUp, Activity, Edit2, Check, X, Home, BookOpen, User as UserIcon, Clock, BarChart3, Plus } from 'lucide-react';
 import { UserProfile } from '../types';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
+import { Input } from './ui/input';
 
 const COLORS = {
   sage: '#8a9a84',
@@ -34,6 +35,11 @@ export function PeriodTrackerPage({ userProfile, onNavigate, onUpdateProfile }: 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loggedSymptoms, setLoggedSymptoms] = useState<{ [key: string]: any }>({});
+  
+  // Add Dates Modal state
+  const [showAddDatesModal, setShowAddDatesModal] = useState(false);
+  const [newStartDate, setNewStartDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -46,6 +52,37 @@ export function PeriodTrackerPage({ userProfile, onNavigate, onUpdateProfile }: 
   ];
 
   const pastPeriods = userProfile.periodHistory || [];
+
+  // Add Dates Modal handlers
+  const handleOpenAddDatesModal = () => {
+    setNewStartDate('');
+    setNewEndDate('');
+    setShowAddDatesModal(true);
+  };
+
+  const handleSaveNewDates = () => {
+    if (!newStartDate || !newEndDate || !onUpdateProfile) return;
+
+    // Parse dates in local timezone at noon
+    const parseLocalDate = (dateString: string): Date => {
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month - 1, day, 12, 0, 0);
+    };
+
+    const startDate = parseLocalDate(newStartDate);
+    const endDate = parseLocalDate(newEndDate);
+
+    // Update profile with new period dates
+    onUpdateProfile({
+      lastPeriodStart: startDate,
+      lastPeriodEnd: endDate,
+    });
+
+    // Close modal
+    setShowAddDatesModal(false);
+    setNewStartDate('');
+    setNewEndDate('');
+  };
 
   // Calculate cycle phase for any date
   const getPhaseForDate = (date: Date): 'menstrual' | 'follicular' | 'ovulation' | 'luteal' | 'predicted' | null => {
@@ -291,10 +328,20 @@ export function PeriodTrackerPage({ userProfile, onNavigate, onUpdateProfile }: 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
       <div className="flex-1 p-4 pb-20 overflow-y-auto">
-        {/* Header */}
-        <div className="mb-6 pt-2">
-          <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Period Tracker</h1>
-          <p className="text-sm text-slate-600">Track your cycle and symptoms</p>
+        {/* Header with Add Dates Button */}
+        <div className="mb-6 pt-2 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Period Tracker</h1>
+            <p className="text-sm text-slate-600">Track your cycle and symptoms</p>
+          </div>
+          <Button
+            onClick={handleOpenAddDatesModal}
+            className="h-9 text-white"
+            style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Dates
+          </Button>
         </div>
 
         {/* Current Phase Card */}
@@ -484,6 +531,77 @@ export function PeriodTrackerPage({ userProfile, onNavigate, onUpdateProfile }: 
           </div>
         </Card>
       </div>
+
+      {/* Add Dates Modal */}
+      {showAddDatesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl" style={{ color: COLORS.sageDark }}>Add Period Dates</h2>
+                <button
+                  onClick={() => setShowAddDatesModal(false)}
+                  className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6">
+                Enter the start and end dates of your most recent period.
+              </p>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Label htmlFor="new-start-date" className="text-sm mb-2 block">Period Start Date</Label>
+                  <Input
+                    id="new-start-date"
+                    type="date"
+                    value={newStartDate}
+                    onChange={(e) => setNewStartDate(e.target.value)}
+                    className="w-full h-11"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="new-end-date" className="text-sm mb-2 block">Period End Date</Label>
+                  <Input
+                    id="new-end-date"
+                    type="date"
+                    value={newEndDate}
+                    onChange={(e) => setNewEndDate(e.target.value)}
+                    className="w-full h-11"
+                    min={newStartDate}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowAddDatesModal(false)}
+                  variant="outline"
+                  className="flex-1 h-11"
+                  style={{ borderColor: COLORS.sage, color: COLORS.sageDark }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveNewDates}
+                  disabled={!newStartDate || !newEndDate}
+                  className="flex-1 h-11 text-white"
+                  style={{ 
+                    background: newStartDate && newEndDate
+                      ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
+                      : '#d1d5db'
+                  }}
+                >
+                  Save Dates
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3">
