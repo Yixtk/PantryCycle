@@ -115,8 +115,16 @@ export default async function handler(req, res) {
         
         weekBlocks = blocks.map(block => {
           // Parse ISO date strings as local dates
-          const startDate = parseLocalDate(block.startDate.split('T')[0]);
-          const endDate = parseLocalDate(block.endDate.split('T')[0]);
+          // Handle both ISO format (2025-11-10T12:00:00.000Z) and simple format (2025-11-10)
+          const startDateString = block.startDate.includes('T') 
+            ? block.startDate.split('T')[0] 
+            : block.startDate;
+          const endDateString = block.endDate.includes('T') 
+            ? block.endDate.split('T')[0] 
+            : block.endDate;
+          
+          const startDate = parseLocalDate(startDateString);
+          const endDate = parseLocalDate(endDateString);
           
           return {
             ...block,
