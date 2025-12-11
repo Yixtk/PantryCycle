@@ -63,6 +63,15 @@ export default async function handler(req, res) {
 
     const user = result.rows[0];
 
+    // Helper function to parse dates in local timezone
+    const parseLocalDate = (dateString) => {
+      if (!dateString) return undefined;
+      // PostgreSQL returns dates as YYYY-MM-DD strings
+      // Parse them as local dates at noon to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(year, month - 1, day, 12, 0, 0);
+    };
+
     // Build dietary preferences array from booleans
     const dietaryPreferences = [];
     if (user.is_vegetarian) dietaryPreferences.push('Vegetarian');
@@ -104,22 +113,28 @@ export default async function handler(req, res) {
           ? JSON.parse(user.week_blocks) 
           : user.week_blocks;
         
-        weekBlocks = blocks.map(block => ({
-          ...block,
-          startDate: new Date(block.startDate),
-          endDate: new Date(block.endDate)
-        }));
+        weekBlocks = blocks.map(block => {
+          // Parse ISO date strings as local dates
+          const startDate = parseLocalDate(block.startDate.split('T')[0]);
+          const endDate = parseLocalDate(block.endDate.split('T')[0]);
+          
+          return {
+            ...block,
+            startDate: startDate,
+            endDate: endDate
+          };
+        });
       } catch (e) {
         console.error('Error parsing week blocks:', e);
         weekBlocks = [];
       }
     }
 
-    // Build period history
+    // Build period history with local date parsing
     const periodHistory = [];
     if (user.start_date && user.end_date) {
-      const startDate = new Date(user.start_date);
-      const endDate = new Date(user.end_date);
+      const startDate = parseLocalDate(user.start_date);
+      const endDate = parseLocalDate(user.end_date);
       const duration = Math.ceil(
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -134,13 +149,13 @@ export default async function handler(req, res) {
 
     const profile = {
       userId: userId,
-      lastPeriodStart: user.start_date ? new Date(user.start_date) : undefined,
-      lastPeriodEnd: user.end_date ? new Date(user.end_date) : undefined,
+      lastPeriodStart: parseLocalDate(user.start_date),
+      lastPeriodEnd: parseLocalDate(user.end_date),
       periodHistory: periodHistory,
       dietaryPreferences: dietaryPreferences,
       allergies: allergies,
       selectedMeals: user.selected_meals || {},
-      weekBlocks: weekBlocks,  // Now properly converted to Date objects
+      weekBlocks: weekBlocks,
       recipesPerWeek: 7
     };
 
