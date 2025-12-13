@@ -11,12 +11,22 @@ export interface User {
   phone?: string;
   birthday?: Date;
 }
+// Update your WeekBlock interface in src/types/index.ts:
+
 export interface WeekBlock {
   id: string;
   startDate: Date;
   endDate: Date;
-  meals: { [day: number]: string[] }; // Same format as selectedMeals
+  meals: { 
+    [day: number]: Array<{
+      meal: string;        // 'breakfast', 'lunch', 'dinner'
+      recipeId: number | null;   // Recipe ID from database
+      phase: string;       // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
+    }> 
+  };
 }
+
+
 export interface UserProfile {
   userId: string;
   lastPeriodStart?: Date;
@@ -60,20 +70,31 @@ export interface Allergy {
   severity?: 'mild' | 'moderate' | 'severe';
 }
 
+// Also update your Recipe interface to include the new fields:
 export interface Recipe {
-  id: string;
+  id: number;  // Changed from string to number
   name: string;
-  image: string;
-  calories: number;
-  prepTime: number; // minutes
-  cookTime: number; // minutes
-  servings: number;
-  cyclePhase?: 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
-  ingredients: Ingredient[];
+  description: string;
+  ingredients: { [key: string]: string }; // e.g., {"chicken": "1 lb"}
   instructions: string[];
-  nutrition: Nutrition;
-  tags: string[];
+  prepTime?: number;
+  cookTime?: number;
+  servings: number;
+  calories: number;
+  nutritionPerServing?: {
+    calories: number;
+    protein: number;
+    [key: string]: number;
+  };
+  imageUrl?: string;
+  phase: string; // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
+  mealTypes: {
+    breakfast: boolean;
+    lunch: boolean;
+    dinner: boolean;
+  };
 }
+
 
 export interface Ingredient {
   item: string;
