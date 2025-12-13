@@ -298,25 +298,66 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 // ============================================
 // RECIPES API
 // ============================================
+// Add this function to your existing api.ts file
 
-export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
-  // TODO: Replace with actual API call
-  // This should return recipes based on user's cycle phase, preferences, and allergies
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/recommended`);
-  // return response.json();
-  
-  // Mock response - return mock recipes
-  const { mockRecipes } = await import('../components/RecipeData');
-  return mockRecipes;
+export async function getRecipes(filters: {
+  phase?: string;           // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
+  mealType?: string;        // 'breakfast', 'lunch', 'dinner'
+  dietary?: string[];       // ['Vegetarian', 'Gluten-Free']
+  allergens?: string[];     // ['Dairy', 'Eggs']
+  limit?: number;
+}): Promise<Recipe[]> {
+  try {
+    const params = new URLSearchParams();
+    
+    if (filters.phase) params.append('phase', filters.phase);
+    if (filters.mealType) params.append('mealType', filters.mealType);
+    if (filters.dietary && filters.dietary.length > 0) {
+      params.append('dietary', filters.dietary.join(','));
+    }
+    if (filters.allergens && filters.allergens.length > 0) {
+      params.append('allergens', filters.allergens.join(','));
+    }
+    if (filters.limit) params.append('limit', filters.limit.toString());
+
+    const response = await fetch(`/api/get-recipes?${params.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch recipes');
+    }
+    
+    const data = await response.json();
+    return data.recipes;
+  } catch (error) {
+    console.error('Get recipes error:', error);
+    throw error;
+  }
 }
 
-export async function getSavedRecipes(userId: string): Promise<Recipe[]> {
-  // TODO: Replace with actual API call
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved`);
-  // return response.json();
+// Helper function to get phase for a specific date
+export function getPhaseForDate(date: Date, lastPeriodStart: Date, avgCycleLength: number = 28): string {
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
   
-  // Mock response
-  return [];
+  const periodStart = new Date(lastPeriodStart);
+  periodStart.setHours(0, 0, 0, 0);
+  
+  const daysSinceLastPeriod = Math.ceil((checkDate.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Calculate cycle day (1-indexed)
+  let cycleDay = (daysSinceLastPeriod % avgCycleLength) + 1;
+  if (cycleDay <= 0) cycleDay += avgCycleLength;
+  
+  // Determine phase based on cycle day
+  if (cycleDay >= 1 && cycleDay <= 5) {
+    return 'Menstrual';
+  } else if (cycleDay >= 6 && cycleDay <= 13) {
+    return 'Follicular';
+  } else if (cycleDay >= 14 && cycleDay <= 16) {
+    return 'Ovulation';
+  } else {
+    return 'Luteal';
+  }
 }
 
 export async function saveRecipe(userId: string, recipeId: string, rating?: number): Promise<SavedRecipe> {
