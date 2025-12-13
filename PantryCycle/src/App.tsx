@@ -31,21 +31,47 @@ export default function App() {
   // DATA LOADING
   // ============================================
 
-  const loadUserData = async (userId: string) => {
-    try {
-      const [profile, recipes, saved] = await Promise.all([
-        api.getUserProfile(userId),
-        api.getRecommendedRecipes(userId),
-        api.getSavedRecipes(userId),
-      ]);
-      
-      setUserProfile(profile);
-      setRecommendedRecipes(recipes);
-      setSavedRecipes(saved);
-    } catch (error) {
-      console.error('Failed to load user data:', error);
+  // Update your loadUserData function in App.tsx to load all recipes:
+
+const loadUserData = async (userId: string) => {
+  try {
+    // Load user profile
+    const profile = await api.getUserProfile(userId);
+    setUserProfile(profile);
+
+    // Load ALL recipes (we'll filter on the frontend when displaying)
+    // This ensures we have recipe data for all assigned recipeIds
+    const allRecipes = await api.getRecipes({ limit: 1000 });
+    setRecipes(allRecipes);
+
+    // Alternative: Only load recipes that are actually assigned to user's week blocks
+    // This is more efficient but requires parsing week blocks first
+    /*
+    const assignedRecipeIds = new Set<number>();
+    profile.weekBlocks?.forEach(block => {
+      Object.values(block.meals).forEach(dayMeals => {
+        dayMeals.forEach(meal => {
+          if (meal.recipeId) {
+            assignedRecipeIds.add(meal.recipeId);
+          }
+        });
+      });
+    });
+
+    if (assignedRecipeIds.size > 0) {
+      // Fetch only assigned recipes
+      // You'd need to create a new API endpoint that accepts recipe IDs
+      // For now, just fetch all
+      const allRecipes = await api.getRecipes({ limit: 1000 });
+      setRecipes(allRecipes);
     }
-  };
+    */
+
+  } catch (error) {
+    console.error('Failed to load user data:', error);
+  }
+};
+
 
   // ============================================
   // AUTH HANDLERS
