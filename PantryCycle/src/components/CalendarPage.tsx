@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Plus, Check, X } from 'lucide-react';
 import { Recipe, UserProfile, PeriodRecord, WeekBlock } from '../types';
 import { Button } from './ui/button';
+import * as api from '../services/api';
 
 interface CalendarPageProps {
   recipes: Recipe[];
@@ -41,14 +42,6 @@ export function CalendarPage({
   onNavigate, 
   onUpdateProfile
 }: CalendarPageProps) {
-  // DEBUG LOGGING
-  console.log('🔍 CalendarPage Debug:', {
-    hasWeekBlocks: !!userProfile.weekBlocks,
-    weekBlocksLength: userProfile.weekBlocks?.length,
-    weekBlocks: userProfile.weekBlocks,
-    firstBlock: userProfile.weekBlocks?.[0]
-  });
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pastPeriods, setPastPeriods] = useState<PeriodRecord[]>([]);
   
@@ -56,6 +49,7 @@ export function CalendarPage({
   const [showAddWeekModal, setShowAddWeekModal] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
   const [newWeekMeals, setNewWeekMeals] = useState<{ [day: number]: string[] }>({});
+  const [isSavingWeek, setIsSavingWeek] = useState(false);
 
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
@@ -268,6 +262,12 @@ export function CalendarPage({
     return null;
   };
 
+  // Helper to get phase name for API (capitalize first letter)
+  const getPhaseNameForAPI = (phase: string | null): string => {
+    if (!phase || phase === 'predicted') return 'Menstrual'; // Default to Menstrual
+    return phase.charAt(0).toUpperCase() + phase.slice(1); // menstrual -> Menstrual
+  };
+
   // ========== ADD WEEK MODAL FUNCTIONS ==========
 
   const handleOpenAddWeekModal = () => {
@@ -300,29 +300,106 @@ export function CalendarPage({
     return Object.values(newWeekMeals).reduce((total, meals) => total + meals.length, 0);
   };
 
-  const handleSaveWeek = () => {
+  const handleSaveWeek = async () => {
     if (!selectedWeekStart || getTotalMealsSelected() === 0) {
       return;
     }
 
-    const newBlock: WeekBlock = {
-      id: `week-${Date.now()}`,
-      startDate: selectedWeekStart,
-      endDate: getSaturdayOfWeek(selectedWeekStart),
-      meals: newWeekMeals,
-    };
+    setIsSavingWeek(true);
 
-    const updatedWeekBlocks = [...(userProfile.weekBlocks || []), newBlock];
+    try {
+      // Calculate average cycle length
+      const avgCycleLength = calculateAverageCycleLength();
 
-    if (onUpdateProfile) {
-      onUpdateProfile({
-        weekBlocks: updatedWeekBlocks,
-      });
+      // Get last period start for phase calculation
+      const lastPeriodStart = userProfile.lastPeriodStart || new Date();
+
+      // Build enhanced meals object with recipe assignments
+      const enhancedMeals: { 
+        [day: number]: Array<{ 
+          meal: string; 
+          recipeId: number | null; 
+          phase: string 
+        }> 
+      } = {};
+
+      // Process each day that has meals
+      for (const [dayStr, meals] of Object.entries(newWeekMeals)) {
+        const day = parseInt(dayStr);
+        const dayDate = new Date(selectedWeekStart);
+        dayDate.setDate(selectedWeekStart.getDate() + day);
+        
+        // Calculate what phase this day will be in
+        const phaseRaw = getPhaseForDate(dayDate);
+        const phase = getPhaseNameForAPI(phaseRaw);
+        
+        // For each meal on this day, fetch appropriate recipes
+        const dayMealAssignments = [];
+        
+        for (const mealType of meals) {
+          try {
+            // Fetch recipes that match this phase, meal type, and user preferences
+            const matchingRecipes = await api.getRecipes({
+              phase: phase,
+              mealType: mealType,
+              dietary: userProfile.dietaryPreferences,
+              allergens: userProfile.allergies.map(a => a.type),
+              limit: 1 // Just get one random recipe
+            });
+
+            if (matchingRecipes.length > 0) {
+              dayMealAssignments.push({
+                meal: mealType,
+                recipeId: matchingRecipes[0].id,
+                phase: phase
+              });
+            } else {
+              console.warn(`No recipes found for ${mealType} in ${phase} phase with user preferences`);
+              // Still add the meal slot, but without a recipe
+              dayMealAssignments.push({
+                meal: mealType,
+                recipeId: null,
+                phase: phase
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching recipe for ${mealType}:`, error);
+            dayMealAssignments.push({
+              meal: mealType,
+              recipeId: null,
+              phase: phase
+            });
+          }
+        }
+        
+        enhancedMeals[day] = dayMealAssignments;
+      }
+
+      // Create the week block with recipe assignments
+      const newBlock: WeekBlock = {
+        id: `week-${Date.now()}`,
+        startDate: selectedWeekStart,
+        endDate: getSaturdayOfWeek(selectedWeekStart),
+        meals: enhancedMeals,
+      };
+
+      const updatedWeekBlocks = [...(userProfile.weekBlocks || []), newBlock];
+
+      if (onUpdateProfile) {
+        await onUpdateProfile({
+          weekBlocks: updatedWeekBlocks,
+        });
+      }
+
+      setShowAddWeekModal(false);
+      setNewWeekMeals({});
+      setSelectedWeekStart(null);
+    } catch (error) {
+      console.error('Error saving week:', error);
+      alert('Failed to save week. Please try again.');
+    } finally {
+      setIsSavingWeek(false);
     }
-
-    setShowAddWeekModal(false);
-    setNewWeekMeals({});
-    setSelectedWeekStart(null);
   };
 
   const handleCancelAddWeek = () => {
@@ -359,44 +436,51 @@ export function CalendarPage({
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
-  const getRecipesForDay = (day: number): { meal: string; recipe: Recipe }[] => {
+  const getRecipesForDay = (day: number): { meal: string; recipe: Recipe | null }[] => {
     const checkDate = new Date(year, month, day);
     const dayOfWeek = checkDate.getDay();
     
+    // Find the week block for this date
     const weekBlock = getWeekBlockForDate(checkDate);
     
     if (!weekBlock) {
-      return [];
+      return []; // No week block = no meals
     }
     
     const mealsForDay = weekBlock.meals[dayOfWeek] || [];
     
-    if (mealsForDay.length === 0 || recipes.length === 0) {
+    if (mealsForDay.length === 0) {
       return [];
     }
 
-    const allMealsInWeek: { day: number; meal: string }[] = [];
-    for (let d = 0; d < 7; d++) {
-      const meals = weekBlock.meals[d] || [];
-      meals.forEach(meal => {
-        allMealsInWeek.push({ day: d, meal });
-      });
-    }
-    
-    allMealsInWeek.sort((a, b) => a.day - b.day);
-    
-    const weekNumber = Math.floor((day - 1) / 7);
-    
-    const result: { meal: string; recipe: Recipe }[] = [];
-    mealsForDay.forEach(meal => {
-      const mealIndexInWeek = allMealsInWeek.findIndex(m => m.day === dayOfWeek && m.meal === meal);
-      if (mealIndexInWeek !== -1) {
-        const recipeIndex = (weekNumber * allMealsInWeek.length + mealIndexInWeek) % recipes.length;
-        result.push({ meal, recipe: recipes[recipeIndex] });
+    // Map meal assignments to actual recipes
+    return mealsForDay.map(mealAssignment => {
+      // Check if mealAssignment is the new format (object) or old format (string)
+      if (typeof mealAssignment === 'string') {
+        // Old format - just a meal string, no recipe
+        return {
+          meal: mealAssignment,
+          recipe: null
+        };
       }
+
+      // New format - has recipeId
+      if (!mealAssignment.recipeId) {
+        // Meal slot exists but no recipe assigned
+        return {
+          meal: mealAssignment.meal,
+          recipe: null
+        };
+      }
+
+      // Find the recipe in the loaded recipes
+      const recipe = recipes.find(r => r.id === mealAssignment.recipeId);
+      
+      return {
+        meal: mealAssignment.meal,
+        recipe: recipe || null
+      };
     });
-    
-    return result;
   };
 
   const days = [];
@@ -486,10 +570,24 @@ export function CalendarPage({
               const mealColor = mealColors[mealRecipe.meal as keyof typeof mealColors] || COLORS.sage;
               const mealTextColor = mealTextColors[mealRecipe.meal as keyof typeof mealTextColors] || '#fff';
               
+              // If no recipe assigned, show just the meal initial (non-clickable)
+              if (!mealRecipe.recipe) {
+                return (
+                  <div
+                    key={idx}
+                    className="flex-1 text-[10px] flex items-center justify-center font-medium opacity-50"
+                    style={{ backgroundColor: mealColor, color: mealTextColor }}
+                    title={`${mealRecipe.meal.charAt(0).toUpperCase() + mealRecipe.meal.slice(1)}: No recipe assigned`}
+                  >
+                    {mealRecipe.meal.charAt(0).toUpperCase()}
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={idx}
-                  onClick={() => onRecipeClick(mealRecipe.recipe)}
+                  onClick={() => onRecipeClick(mealRecipe.recipe!)}
                   className="flex-1 text-[10px] transition-all hover:opacity-80 flex items-center justify-center font-medium"
                   style={{ backgroundColor: mealColor, color: mealTextColor }}
                   title={`${mealRecipe.meal.charAt(0).toUpperCase() + mealRecipe.meal.slice(1)}: ${mealRecipe.recipe.name}`}
@@ -581,6 +679,7 @@ export function CalendarPage({
                 <button
                   onClick={handleCancelAddWeek}
                   className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                  disabled={isSavingWeek}
                 >
                   <X className="h-5 w-5 text-slate-600" />
                 </button>
@@ -658,10 +757,12 @@ export function CalendarPage({
                             <button
                               key={meal}
                               onClick={() => toggleMealForDay(day.value, meal)}
+                              disabled={isSavingWeek}
                               className="h-10 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
                               style={{
                                 borderColor: newWeekMeals[day.value]?.includes(meal) ? COLORS.sage : '#e2e8f0',
-                                backgroundColor: newWeekMeals[day.value]?.includes(meal) ? COLORS.sageBgLight : 'white'
+                                backgroundColor: newWeekMeals[day.value]?.includes(meal) ? COLORS.sageBgLight : 'white',
+                                opacity: isSavingWeek ? 0.5 : 1
                               }}
                             >
                               {newWeekMeals[day.value]?.includes(meal) && (
@@ -676,7 +777,7 @@ export function CalendarPage({
 
                   <div className="rounded-2xl p-4 mb-6" style={{ backgroundColor: COLORS.sageBg }}>
                     <p className="text-sm text-center" style={{ color: COLORS.sageDark }}>
-                      {getTotalMealsSelected()} total meals selected
+                      {isSavingWeek ? 'Assigning recipes...' : `${getTotalMealsSelected()} total meals selected`}
                     </p>
                   </div>
 
@@ -684,6 +785,7 @@ export function CalendarPage({
                     <Button
                       onClick={() => setSelectedWeekStart(null)}
                       variant="outline"
+                      disabled={isSavingWeek}
                       className="flex-1 h-11"
                       style={{ borderColor: COLORS.sage, color: COLORS.sageDark }}
                     >
@@ -691,15 +793,15 @@ export function CalendarPage({
                     </Button>
                     <Button
                       onClick={handleSaveWeek}
-                      disabled={getTotalMealsSelected() === 0}
+                      disabled={getTotalMealsSelected() === 0 || isSavingWeek}
                       className="flex-1 h-11 text-white"
                       style={{ 
-                        background: getTotalMealsSelected() > 0 
+                        background: (getTotalMealsSelected() > 0 && !isSavingWeek)
                           ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
                           : '#d1d5db'
                       }}
                     >
-                      Save Week
+                      {isSavingWeek ? 'Saving...' : 'Save Week'}
                     </Button>
                   </div>
                 </div>
