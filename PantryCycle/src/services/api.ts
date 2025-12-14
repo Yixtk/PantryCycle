@@ -16,10 +16,6 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // AUTHENTICATION
 // ============================================
 
-// ============================================
-// AUTHENTICATION
-// ============================================
-
 export async function loginUser(username: string, password: string): Promise<User> {
   try {
     const response = await fetch('/api/login', {
@@ -81,6 +77,7 @@ export async function createUser(
     throw error;
   }
 }
+
 // ============================================
 // USER PROFILE API
 // ============================================
@@ -117,6 +114,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
     throw error;
   }
 }
+
 export async function updateUserProfile(userId: string, profile: Partial<UserProfile>): Promise<UserProfile> {
   try {
     const body: any = {
@@ -298,8 +296,19 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 // ============================================
 // RECIPES API
 // ============================================
-// Add this function to your existing api.ts file
 
+export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
+  // TODO: Replace with actual API call
+  // This should return recipes based on user's cycle phase, preferences, and allergies
+  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/recommended`);
+  // return response.json();
+  
+  // Mock response - return mock recipes
+  const { mockRecipes } = await import('../components/RecipeData');
+  return mockRecipes;
+}
+
+// NEW: Get recipes with filters
 export async function getRecipes(filters: {
   phase?: string;           // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
   mealType?: string;        // 'breakfast', 'lunch', 'dinner'
@@ -358,6 +367,15 @@ export function getPhaseForDate(date: Date, lastPeriodStart: Date, avgCycleLengt
   } else {
     return 'Luteal';
   }
+}
+
+export async function getSavedRecipes(userId: string): Promise<Recipe[]> {
+  // TODO: Replace with actual API call
+  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved`);
+  // return response.json();
+  
+  // Mock response
+  return [];
 }
 
 export async function saveRecipe(userId: string, recipeId: string, rating?: number): Promise<SavedRecipe> {
