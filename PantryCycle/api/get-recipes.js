@@ -23,6 +23,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Get recipes request:', req.query);
+
     const { 
       phase,           // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
       mealType,        // 'breakfast', 'lunch', 'dinner'
@@ -131,7 +133,7 @@ export default async function handler(req, res) {
         lunch,
         dinner,
         menstrual_phase_tag
-      FROM recipes
+      FROM recipes_classified
       ${whereClause}
       ORDER BY RANDOM()
       LIMIT $${paramIndex}
