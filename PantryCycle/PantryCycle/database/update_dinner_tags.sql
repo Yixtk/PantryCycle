@@ -36,3 +36,4 @@ SELECT
   ROUND(100.0 * COUNT(*) FILTER (WHERE dinner = TRUE) / COUNT(*), 1) as dinner_pct
 FROM recipes_classified;
 
+
