@@ -50,6 +50,11 @@ export function CalendarPage({
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
   const [newWeekMeals, setNewWeekMeals] = useState<{ [day: number]: string[] }>({});
   const [isSavingWeek, setIsSavingWeek] = useState(false);
+  
+  // Recipe selection state (Step 2)
+  const [modalStep, setModalStep] = useState<'selectMeals' | 'selectRecipes'>('selectMeals');
+  const [recommendedRecipesForWeek, setRecommendedRecipesForWeek] = useState<{ [key: string]: Recipe[] }>({});
+  const [selectedRecipesForMeals, setSelectedRecipesForMeals] = useState<{ [key: string]: number | null }>({});
 
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
@@ -308,13 +313,7 @@ export function CalendarPage({
     setIsSavingWeek(true);
 
     try {
-      // Calculate average cycle length
-      const avgCycleLength = calculateAverageCycleLength();
-
-      // Get last period start for phase calculation
-      const lastPeriodStart = userProfile.lastPeriodStart || new Date();
-
-      // Build enhanced meals object with recipe assignments
+      // Build enhanced meals object with user-selected recipe assignments
       const enhancedMeals: { 
         [day: number]: Array<{ 
           meal: string; 
@@ -329,47 +328,20 @@ export function CalendarPage({
         const dayDate = new Date(selectedWeekStart);
         dayDate.setDate(selectedWeekStart.getDate() + day);
         
-        // Calculate what phase this day will be in
         const phaseRaw = getPhaseForDate(dayDate);
         const phase = getPhaseNameForAPI(phaseRaw);
         
-        // For each meal on this day, fetch appropriate recipes
         const dayMealAssignments = [];
         
         for (const mealType of meals) {
-          try {
-            // Fetch recipes that match this phase, meal type, and user preferences
-            const matchingRecipes = await api.getRecipes({
-              phase: phase,
-              mealType: mealType,
-              dietary: userProfile.dietaryPreferences,
-              allergens: userProfile.allergies.map(a => a.type),
-              limit: 1 // Just get one random recipe
-            });
-
-            if (matchingRecipes.length > 0) {
-              dayMealAssignments.push({
-                meal: mealType,
-                recipeId: matchingRecipes[0].id,
-                phase: phase
-              });
-            } else {
-              console.warn(`No recipes found for ${mealType} in ${phase} phase with user preferences`);
-              // Still add the meal slot, but without a recipe
-              dayMealAssignments.push({
-                meal: mealType,
-                recipeId: null,
-                phase: phase
-              });
-            }
-          } catch (error) {
-            console.error(`Error fetching recipe for ${mealType}:`, error);
-            dayMealAssignments.push({
-              meal: mealType,
-              recipeId: null,
-              phase: phase
-            });
-          }
+          const key = `${day}-${mealType}`;
+          const selectedRecipeId = selectedRecipesForMeals[key];
+          
+          dayMealAssignments.push({
+            meal: mealType,
+            recipeId: selectedRecipeId || null,
+            phase: phase
+          });
         }
         
         enhancedMeals[day] = dayMealAssignments;
@@ -394,6 +366,9 @@ export function CalendarPage({
       setShowAddWeekModal(false);
       setNewWeekMeals({});
       setSelectedWeekStart(null);
+      setModalStep('selectMeals');
+      setRecommendedRecipesForWeek({});
+      setSelectedRecipesForMeals({});
     } catch (error) {
       console.error('Error saving week:', error);
       alert('Failed to save week. Please try again.');
@@ -406,6 +381,74 @@ export function CalendarPage({
     setShowAddWeekModal(false);
     setNewWeekMeals({});
     setSelectedWeekStart(null);
+    setModalStep('selectMeals');
+    setRecommendedRecipesForWeek({});
+    setSelectedRecipesForMeals({});
+  };
+
+  const handleProceedToRecipeSelection = async () => {
+    if (!selectedWeekStart || getTotalMealsSelected() === 0) {
+      return;
+    }
+
+    setIsSavingWeek(true);
+
+    try {
+      const avgCycleLength = calculateAverageCycleLength();
+      const lastPeriodStart = userProfile.lastPeriodStart || new Date();
+      const recommendations: { [key: string]: Recipe[] } = {};
+
+      // For each day and meal, fetch 3-5 recipe options
+      for (const [dayStr, meals] of Object.entries(newWeekMeals)) {
+        const day = parseInt(dayStr);
+        const dayDate = new Date(selectedWeekStart);
+        dayDate.setDate(selectedWeekStart.getDate() + day);
+        
+        const phaseRaw = getPhaseForDate(dayDate);
+        const phase = getPhaseNameForAPI(phaseRaw);
+        
+        for (const mealType of meals) {
+          const key = `${day}-${mealType}`;
+          
+          try {
+            // Fetch 5 recipe options for this meal
+            const matchingRecipes = await api.getRecipes({
+              phase: phase,
+              mealType: mealType,
+              dietary: userProfile.dietaryPreferences,
+              allergens: userProfile.allergies.map(a => a.type),
+              limit: 5
+            });
+
+            recommendations[key] = matchingRecipes;
+          } catch (error) {
+            console.error(`Error fetching recipes for ${mealType}:`, error);
+            recommendations[key] = [];
+          }
+        }
+      }
+
+      setRecommendedRecipesForWeek(recommendations);
+      setModalStep('selectRecipes');
+    } catch (error) {
+      console.error('Error loading recipe recommendations:', error);
+      alert('Failed to load recommendations. Please try again.');
+    } finally {
+      setIsSavingWeek(false);
+    }
+  };
+
+  const handleBackToMealSelection = () => {
+    setModalStep('selectMeals');
+    setRecommendedRecipesForWeek({});
+    setSelectedRecipesForMeals({});
+  };
+
+  const handleSelectRecipeForMeal = (mealKey: string, recipeId: number) => {
+    setSelectedRecipesForMeals(prev => ({
+      ...prev,
+      [mealKey]: recipeId
+    }));
   };
 
   // ========== CALENDAR GENERATION ==========
@@ -805,9 +848,12 @@ export function CalendarPage({
                 </div>
               )}
 
-              {selectedWeekStart && (
+              {selectedWeekStart && modalStep === 'selectMeals' && (
                 <div>
                   <p className="text-sm text-slate-600 mb-4">
+                    Step 1: Select meals for the week
+                  </p>
+                  <p className="text-xs text-slate-500 mb-4">
                     Week of {formatDateShort(selectedWeekStart)} - {formatDateShort(getSaturdayOfWeek(selectedWeekStart))}
                   </p>
 
@@ -861,7 +907,133 @@ export function CalendarPage({
 
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => setSelectedWeekStart(null)}
+                      onClick={modalStep === 'selectMeals' ? () => setSelectedWeekStart(null) : handleBackToMealSelection}
+                      variant="outline"
+                      disabled={isSavingWeek}
+                      className="flex-1 h-11"
+                      style={{ borderColor: COLORS.sage, color: COLORS.sageDark }}
+                    >
+                      Back
+                    </Button>
+                    {modalStep === 'selectMeals' ? (
+                      <Button
+                        onClick={handleProceedToRecipeSelection}
+                        disabled={getTotalMealsSelected() === 0 || isSavingWeek}
+                        className="flex-1 h-11 text-white"
+                        style={{ 
+                          background: (getTotalMealsSelected() > 0 && !isSavingWeek)
+                            ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
+                            : '#d1d5db'
+                        }}
+                      >
+                        {isSavingWeek ? 'Loading...' : 'Next: Choose Recipes'}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleSaveWeek}
+                        disabled={isSavingWeek}
+                        className="flex-1 h-11 text-white"
+                        style={{ 
+                          background: !isSavingWeek
+                            ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
+                            : '#d1d5db'
+                        }}
+                      >
+                        {isSavingWeek ? 'Saving...' : 'Confirm & Save Week'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Select Recipes */}
+              {selectedWeekStart && modalStep === 'selectRecipes' && (
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Step 2: Choose recipes for each meal
+                  </p>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Week of {formatDateShort(selectedWeekStart)} - {formatDateShort(getSaturdayOfWeek(selectedWeekStart))}
+                  </p>
+
+                  <div className="space-y-6 mb-6 max-h-[60vh] overflow-y-auto">
+                    {Object.entries(newWeekMeals).map(([dayStr, meals]) => {
+                      const day = parseInt(dayStr);
+                      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      
+                      return (
+                        <div key={day}>
+                          <h4 className="font-medium mb-3" style={{ color: COLORS.sageDark }}>
+                            {dayNames[day]}
+                          </h4>
+                          {meals.map((mealType) => {
+                            const key = `${day}-${mealType}`;
+                            const recipeOptions = recommendedRecipesForWeek[key] || [];
+                            const selectedRecipeId = selectedRecipesForMeals[key];
+                            
+                            return (
+                              <div key={key} className="mb-4">
+                                <p className="text-xs text-slate-600 mb-2 capitalize">
+                                  {mealType} {recipeOptions.length > 0 ? `(${recipeOptions.length} options)` : '(No recipes found)'}
+                                </p>
+                                <div className="space-y-2">
+                                  {recipeOptions.map((recipe) => (
+                                    <button
+                                      key={recipe.id}
+                                      onClick={() => handleSelectRecipeForMeal(key, recipe.id)}
+                                      className="w-full text-left p-3 rounded-lg border-2 transition-all"
+                                      style={{
+                                        borderColor: selectedRecipeId === recipe.id ? COLORS.sage : '#e5e7eb',
+                                        backgroundColor: selectedRecipeId === recipe.id ? COLORS.sageBgLight : 'white'
+                                      }}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1">
+                                          <p className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
+                                            {recipe.name}
+                                          </p>
+                                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                            <span>🔥 {recipe.calories} cal</span>
+                                            {recipe.phase && (
+                                              <span className="px-2 py-0.5 rounded text-xs" style={{
+                                                backgroundColor: recipe.phase === 'Menstrual' ? COLORS.menstrual :
+                                                                recipe.phase === 'Follicular' ? COLORS.follicular :
+                                                                recipe.phase === 'Ovulation' ? COLORS.ovulation :
+                                                                COLORS.luteal,
+                                                color: recipe.phase === 'Menstrual' ? COLORS.menstrualText :
+                                                      recipe.phase === 'Follicular' ? COLORS.follicularText :
+                                                      recipe.phase === 'Ovulation' ? COLORS.ovulationText :
+                                                      COLORS.lutealText
+                                              }}>
+                                                {recipe.phase}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {selectedRecipeId === recipe.id && (
+                                          <Check className="h-5 w-5 flex-shrink-0" style={{ color: COLORS.sage }} />
+                                        )}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="rounded-2xl p-4 mb-6" style={{ backgroundColor: COLORS.sageBg }}>
+                    <p className="text-sm text-center" style={{ color: COLORS.sageDark }}>
+                      {Object.keys(selectedRecipesForMeals).length} of {getTotalMealsSelected()} meals selected
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleBackToMealSelection}
                       variant="outline"
                       disabled={isSavingWeek}
                       className="flex-1 h-11"
@@ -871,15 +1043,15 @@ export function CalendarPage({
                     </Button>
                     <Button
                       onClick={handleSaveWeek}
-                      disabled={getTotalMealsSelected() === 0 || isSavingWeek}
+                      disabled={isSavingWeek}
                       className="flex-1 h-11 text-white"
                       style={{ 
-                        background: (getTotalMealsSelected() > 0 && !isSavingWeek)
+                        background: !isSavingWeek
                           ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
                           : '#d1d5db'
                       }}
                     >
-                      {isSavingWeek ? 'Saving...' : 'Save Week'}
+                      {isSavingWeek ? 'Saving...' : 'Confirm & Save Week'}
                     </Button>
                   </div>
                 </div>
