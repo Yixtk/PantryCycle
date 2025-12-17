@@ -40,8 +40,14 @@ export default function App() {
 
       // Load recommended recipes using new API
       const recommended = await api.getRecommendedRecipes(userId);
-      setRecommendedRecipes(recommended);
-      setRecipes(recommended); // Also set as general recipes
+      
+      // Remove duplicates based on recipe id
+      const uniqueRecommended = Array.from(
+        new Map(recommended.map(recipe => [recipe.id, recipe])).values()
+      );
+      
+      setRecommendedRecipes(uniqueRecommended);
+      setRecipes(uniqueRecommended); // Also set as general recipes
 
       // Load saved recipes (if any)
       const saved = await api.getSavedRecipes(userId);
@@ -361,7 +367,13 @@ export default function App() {
             
             // Only return selected recipes (empty array if none selected)
             const filtered = recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
-            return filtered;
+            
+            // Extra deduplication: ensure no duplicate recipes in the list
+            const uniqueFiltered = Array.from(
+              new Map(filtered.map(recipe => [recipe.id, recipe])).values()
+            );
+            
+            return uniqueFiltered;
           })()}
           onRecipeClick={handleRecipeClick}
           onNavigate={handleNavigate}

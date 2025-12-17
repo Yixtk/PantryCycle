@@ -1345,12 +1345,6 @@ export function CalendarPage({
                             transform: isSelected ? 'scale(0.98)' : 'scale(1)'
                           }}
                         >
-                          {isSelected && showRecipeAdded && (
-                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium animate-bounce"
-                                 style={{ backgroundColor: COLORS.sage, color: 'white' }}>
-                              <span>✓</span> Added!
-                            </div>
-                          )}
                           <div className="flex items-start gap-3">
                             {recipe.imageUrl && (
                               <img
