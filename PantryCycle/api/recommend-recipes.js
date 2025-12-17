@@ -184,7 +184,7 @@ export default async function handler(req, res) {
         ingredients,
         cooking_instructions,
         category,
-        nutrition,
+        nutrition_calories,
         serving_size,
         nutrition_per_serving,
         breakfast,
@@ -216,7 +216,7 @@ export default async function handler(req, res) {
       prepTime: 0,
       cookTime: 0,
       servings: row.serving_size || 1,
-      calories: row.nutrition || 0,
+      calories: row.nutrition_calories || 0,
       nutritionPerServing: typeof row.nutrition_per_serving === 'string' 
         ? JSON.parse(row.nutrition_per_serving) 
         : row.nutrition_per_serving,
