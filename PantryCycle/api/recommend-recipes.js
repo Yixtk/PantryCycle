@@ -190,7 +190,9 @@ export default async function handler(req, res) {
         breakfast,
         lunch,
         dinner,
-        menstrual_phase_tag
+        menstrual_phase_tag,
+        prep_time,
+        cook_time
       FROM recipes_classified
       ${whereClause}
       ORDER BY RANDOM()
@@ -222,8 +224,8 @@ export default async function handler(req, res) {
         description: row.category || '',
         ingredients: safeJsonParse(row.ingredients, {}),
         instructions: safeJsonParse(row.cooking_instructions, []),
-        prepTime: 0,
-        cookTime: 0,
+        prepTime: row.prep_time || 0,
+        cookTime: row.cook_time || 0,
         servings: row.serving_size || 1,
         calories: row.nutrition_calories || 0,
         nutritionPerServing: safeJsonParse(row.nutrition_per_serving, {}),
