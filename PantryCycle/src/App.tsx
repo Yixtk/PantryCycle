@@ -358,12 +358,22 @@ export default function App() {
                 });
               });
             }
+            
+            console.log('📊 Recipes Debug:', {
+              totalRecipes: recommendedRecipes.length,
+              selectedIds: Array.from(selectedRecipeIds),
+              recipeIds: recommendedRecipes.slice(0, 5).map(r => r.id)
+            });
+            
             // If no recipes selected, show all recommended recipes
             if (selectedRecipeIds.size === 0) {
+              console.log('✅ No recipes selected, showing all', recommendedRecipes.length);
               return recommendedRecipes;
             }
             // Otherwise, return only selected recipes
-            return recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
+            const filtered = recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
+            console.log('✅ Selected recipes:', filtered.length);
+            return filtered;
           })()}
           onRecipeClick={handleRecipeClick}
           onNavigate={handleNavigate}
