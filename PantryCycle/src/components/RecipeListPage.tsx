@@ -24,6 +24,11 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
     recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Helper to get nutrition data (supports both formats)
+  const getNutrition = (recipe: Recipe) => {
+    return recipe.nutritionPerServing || recipe.nutrition || { protein: 0, carbs: 0, fat: 0 };
+  };
+
   return (
     <div className="min-h-screen flex flex-col hide-scrollbar" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
       <div className="flex-1 p-4 pb-20 overflow-y-auto hide-scrollbar">
@@ -62,23 +67,24 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                 className="w-full bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
               >
                 <img
-                  src={recipe.image}
+                  src={recipe.imageUrl || recipe.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'}
                   alt={recipe.name}
                   className="w-full h-48 object-cover"
                 />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="text-slate-900 flex-1">{recipe.name}</h3>
-                    {recipe.cyclePhase && PHASE_COLORS[recipe.cyclePhase] && (
+                    {((recipe.phase && PHASE_COLORS[recipe.phase.toLowerCase()]) || 
+                      (recipe.cyclePhase && PHASE_COLORS[recipe.cyclePhase])) && (
                       <span 
                         className="px-2 py-1 rounded-full text-[10px] flex items-center gap-1 flex-shrink-0"
                         style={{ 
-                          backgroundColor: PHASE_COLORS[recipe.cyclePhase].bg,
-                          color: PHASE_COLORS[recipe.cyclePhase].text
+                          backgroundColor: PHASE_COLORS[(recipe.phase || recipe.cyclePhase || '').toLowerCase()]?.bg,
+                          color: PHASE_COLORS[(recipe.phase || recipe.cyclePhase || '').toLowerCase()]?.text
                         }}
                       >
-                        <span>{PHASE_COLORS[recipe.cyclePhase].icon}</span>
-                        <span className="capitalize">{recipe.cyclePhase}</span>
+                        <span>{PHASE_COLORS[(recipe.phase || recipe.cyclePhase || '').toLowerCase()]?.icon}</span>
+                        <span className="capitalize">{recipe.phase || recipe.cyclePhase}</span>
                       </span>
                     )}
                   </div>
@@ -89,22 +95,22 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                     </div>
                     <div className="flex items-center gap-1 text-slate-600 text-sm">
                       <Clock className="h-4 w-4" style={{ color: '#8a9a84' }} />
-                      <span>{recipe.prepTime + recipe.cookTime}m</span>
+                      <span>{(recipe.prepTime || 0) + (recipe.cookTime || 0)}m</span>
                     </div>
                   </div>
 
                   <div className="mt-3 flex gap-2">
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#f0f2ef' }}>
                       <div className="text-slate-600">Protein</div>
-                      <div className="text-slate-900">{recipe.nutrition.protein}g</div>
+                      <div className="text-slate-900">{getNutrition(recipe).protein || 0}g</div>
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#e1e5de' }}>
                       <div className="text-slate-600">Carbs</div>
-                      <div className="text-slate-900">{recipe.nutrition.carbs}g</div>
+                      <div className="text-slate-900">{getNutrition(recipe).carbs || 0}g</div>
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#f0f2ef' }}>
                       <div className="text-slate-600">Fat</div>
-                      <div className="text-slate-900">{recipe.nutrition.fat}g</div>
+                      <div className="text-slate-900">{getNutrition(recipe).fat || 0}g</div>
                     </div>
                   </div>
                 </div>
