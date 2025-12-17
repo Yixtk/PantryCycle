@@ -47,7 +47,37 @@ export default function App() {
       );
       
       setRecommendedRecipes(uniqueRecommended);
-      setRecipes(uniqueRecommended); // Also set as general recipes
+
+      // Load all recipes that are in the user's meal plan
+      const selectedRecipeIds = new Set<number>();
+      if (profile.weekBlocks) {
+        profile.weekBlocks.forEach(block => {
+          Object.values(block.meals).forEach(dayMeals => {
+            dayMeals.forEach(meal => {
+              if (typeof meal !== 'string' && meal.recipeId) {
+                selectedRecipeIds.add(meal.recipeId);
+              }
+            });
+          });
+        });
+      }
+
+      // Fetch any recipes that are in meal plan but not in recommendations
+      const missingRecipeIds = Array.from(selectedRecipeIds).filter(
+        id => !uniqueRecommended.find(r => r.id === id)
+      );
+
+      let additionalRecipes: Recipe[] = [];
+      if (missingRecipeIds.length > 0) {
+        console.log('Fetching missing recipes:', missingRecipeIds);
+        // Fetch all recipes and filter for the ones we need
+        const allRecipes = await api.getRecipes({ limit: 1000 });
+        additionalRecipes = allRecipes.filter(r => missingRecipeIds.includes(r.id));
+      }
+
+      // Combine recommended + additional recipes
+      const allAvailableRecipes = [...uniqueRecommended, ...additionalRecipes];
+      setRecipes(allAvailableRecipes);
 
       // Load saved recipes (if any)
       const saved = await api.getSavedRecipes(userId);
