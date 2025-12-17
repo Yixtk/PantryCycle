@@ -389,7 +389,7 @@ export async function getSavedRecipes(userId: string): Promise<Recipe[]> {
   return [];
 }
 
-export async function saveRecipe(userId: string, recipeId: string, rating?: number): Promise<SavedRecipe> {
+export async function saveRecipe(userId: string, recipeId: number | string, rating?: number): Promise<SavedRecipe> {
   // TODO: Replace with actual API call
   // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved`, {
   //   method: 'POST',
@@ -402,7 +402,7 @@ export async function saveRecipe(userId: string, recipeId: string, rating?: numb
   return {
     id: Date.now().toString(),
     userId,
-    recipeId,
+    recipeId: String(recipeId),
     savedAt: new Date(),
     rating,
   };
