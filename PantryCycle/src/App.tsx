@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { OnboardingPage } from './components/OnboardingPage';
 import { CalendarPage } from './components/CalendarPage';
@@ -17,6 +17,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]); // All available recipes
   const [recommendedRecipes, setRecommendedRecipes] = useState<Recipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
 
@@ -39,33 +40,14 @@ const loadUserData = async (userId: string) => {
     const profile = await api.getUserProfile(userId);
     setUserProfile(profile);
 
-    // Load ALL recipes (we'll filter on the frontend when displaying)
-    // This ensures we have recipe data for all assigned recipeIds
-    const allRecipes = await api.getRecipes({ limit: 1000 });
-    setRecipes(allRecipes);
+    // Load recommended recipes using new API
+    const recommended = await api.getRecommendedRecipes(userId);
+    setRecommendedRecipes(recommended);
+    setRecipes(recommended); // Also set as general recipes
 
-    // Alternative: Only load recipes that are actually assigned to user's week blocks
-    // This is more efficient but requires parsing week blocks first
-    /*
-    const assignedRecipeIds = new Set<number>();
-    profile.weekBlocks?.forEach(block => {
-      Object.values(block.meals).forEach(dayMeals => {
-        dayMeals.forEach(meal => {
-          if (meal.recipeId) {
-            assignedRecipeIds.add(meal.recipeId);
-          }
-        });
-      });
-    });
-
-    if (assignedRecipeIds.size > 0) {
-      // Fetch only assigned recipes
-      // You'd need to create a new API endpoint that accepts recipe IDs
-      // For now, just fetch all
-      const allRecipes = await api.getRecipes({ limit: 1000 });
-      setRecipes(allRecipes);
-    }
-    */
+    // Load saved recipes (if any)
+    const saved = await api.getSavedRecipes(userId);
+    setSavedRecipes(saved);
 
   } catch (error) {
     console.error('Failed to load user data:', error);
@@ -76,6 +58,30 @@ const loadUserData = async (userId: string) => {
   // ============================================
   // AUTH HANDLERS
   // ============================================
+
+  // Helper function to convert old meal format to new format
+  const convertMealsToWeekBlock = (selectedMeals: { [day: number]: string[] }, startDate: Date, profile: UserProfile) => {
+    const convertedMeals: { [day: number]: Array<{ meal: string; recipeId: number | null; phase: string }> } = {};
+    
+    Object.entries(selectedMeals).forEach(([dayStr, meals]) => {
+      const day = parseInt(dayStr);
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + day);
+      
+      // Calculate phase for this date
+      const phase = profile.lastPeriodStart 
+        ? api.getPhaseForDate(currentDate, profile.lastPeriodStart, profile.averageCycleLength || 28)
+        : 'Follicular';
+      
+      convertedMeals[day] = meals.map(meal => ({
+        meal,
+        recipeId: null,
+        phase
+      }));
+    });
+    
+    return convertedMeals;
+  };
 
   const handleLogin = async (username: string, password: string) => {
   try {
@@ -122,7 +128,7 @@ const loadUserData = async (userId: string) => {
         id: `week-${Date.now()}`,
         startDate: nextSunday,
         endDate: getSaturday(nextSunday),
-        meals: profile.selectedMeals
+        meals: convertMealsToWeekBlock(profile.selectedMeals, nextSunday, profile)
       };
 
       // Save the week block
@@ -209,11 +215,23 @@ const loadUserData = async (userId: string) => {
 
     // Create first week block for upcoming Sunday
     const upcomingSunday = getUpcomingSunday();
+    
+    // Create a temporary profile object for phase calculation
+    const tempProfile: UserProfile = {
+      userId: user.id,
+      lastPeriodStart: data.lastPeriodStart,
+      lastPeriodEnd: data.lastPeriodEnd,
+      dietaryPreferences: data.dietaryPreferences,
+      allergies: data.allergies.map(a => ({ type: a })),
+      selectedMeals: data.selectedMeals,
+      recipesPerWeek: 7,
+    };
+    
     const firstWeekBlock = {
       id: `week-${Date.now()}`,
       startDate: upcomingSunday,
       endDate: getSaturday(upcomingSunday),
-      meals: data.selectedMeals
+      meals: convertMealsToWeekBlock(data.selectedMeals, upcomingSunday, tempProfile)
     };
 
     console.log('Creating week block:', {
