@@ -249,7 +249,7 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
           {/* Intro text */}
           <p className="text-xs text-slate-600 text-center">
             {groceryItems.length > 0 
-              ? "Here's a grocery list based on the recipes you've selected in your meal plan."
+              ? "Ingredients for your next 7 days of meals. Fresh items won't spoil!"
               : "Add meals to your calendar to automatically generate your grocery list."}
           </p>
         </div>

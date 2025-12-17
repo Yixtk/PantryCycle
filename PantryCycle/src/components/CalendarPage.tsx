@@ -62,6 +62,8 @@ export function CalendarPage({
   const [editingMealType, setEditingMealType] = useState<string | null>(null);
   const [recipeOptions, setRecipeOptions] = useState<Recipe[]>([]);
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
+  const [showRecipeAdded, setShowRecipeAdded] = useState(false);
 
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
@@ -498,6 +500,13 @@ export function CalendarPage({
   const handleSelectRecipe = async (recipe: Recipe | null) => {
     if (!selectedEditDate || !editingMealType) return;
 
+    // Show feedback animation
+    if (recipe) {
+      setSelectedRecipeId(recipe.id);
+      setShowRecipeAdded(true);
+      setTimeout(() => setShowRecipeAdded(false), 2000);
+    }
+
     try {
       // Find the week block for this date
       const dayOfWeek = selectedEditDate.getDay();
@@ -680,7 +689,7 @@ export function CalendarPage({
     }
 
     // Map meal assignments to actual recipes
-    return mealsForDay.map(mealAssignment => {
+    const mappedMeals = mealsForDay.map(mealAssignment => {
       // Check if mealAssignment is the new format (object) or old format (string)
       if (typeof mealAssignment === 'string') {
         // Old format - just a meal string, no recipe
@@ -706,6 +715,13 @@ export function CalendarPage({
         meal: mealAssignment.meal,
         recipe: recipe || null
       };
+    });
+
+    // Sort meals in BLD order: breakfast -> lunch -> dinner
+    const mealOrder = { breakfast: 1, lunch: 2, dinner: 3 };
+    return mappedMeals.sort((a, b) => {
+      return (mealOrder[a.meal as keyof typeof mealOrder] || 99) - 
+             (mealOrder[b.meal as keyof typeof mealOrder] || 99);
     });
   };
 
@@ -1316,16 +1332,25 @@ export function CalendarPage({
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {recipeOptions.map((recipe) => (
+                      {recipeOptions.map((recipe) => {
+                        const isSelected = selectedRecipeId === recipe.id;
+                        return (
                         <button
                           key={recipe.id}
                           onClick={() => handleSelectRecipe(recipe)}
-                          className="w-full p-3 rounded-xl border-2 transition-all hover:shadow-sm text-left"
+                          className="w-full p-3 rounded-xl border-2 transition-all hover:shadow-lg text-left relative overflow-hidden"
                           style={{
-                            borderColor: COLORS.sageBgLight,
-                            backgroundColor: 'white'
+                            borderColor: isSelected ? COLORS.sage : COLORS.sageBgLight,
+                            backgroundColor: isSelected ? COLORS.sageBg : 'white',
+                            transform: isSelected ? 'scale(0.98)' : 'scale(1)'
                           }}
                         >
+                          {isSelected && showRecipeAdded && (
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium animate-bounce"
+                                 style={{ backgroundColor: COLORS.sage, color: 'white' }}>
+                              <span>✓</span> Added!
+                            </div>
+                          )}
                           <div className="flex items-start gap-3">
                             {recipe.imageUrl && (
                               <img
@@ -1350,7 +1375,8 @@ export function CalendarPage({
                             </div>
                           </div>
                         </button>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
                 </div>
