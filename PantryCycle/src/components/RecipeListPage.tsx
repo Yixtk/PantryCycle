@@ -54,10 +54,17 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: '#e1e5de' }}>
                 <BookOpen className="h-8 w-8" style={{ color: '#8a9a84' }} />
               </div>
-              <h3 className="text-slate-900 mb-2">No Saved Recipes</h3>
-              <p className="text-slate-600 text-sm">
-                Try recipes from your calendar and rate them to save them here!
+              <h3 className="text-slate-900 mb-2">No Selected Recipes Yet</h3>
+              <p className="text-slate-600 text-sm mb-4">
+                Go to Calendar and click on any day to add recipes to your meal plan!
               </p>
+              <button
+                onClick={() => onNavigate('calendar')}
+                className="px-4 py-2 rounded-lg text-white text-sm"
+                style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}
+              >
+                Go to Calendar
+              </button>
             </div>
           ) : (
             filteredRecipes.map((recipe) => (
