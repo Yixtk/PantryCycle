@@ -610,19 +610,37 @@ export function CalendarPage({
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
       <div className="flex-1 p-4 pb-20 overflow-y-auto">
         
-        <div className="mb-6 pt-2 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
-            <p className="text-sm text-slate-500">Your weekly meal plan</p>
+        <div className="mb-6 pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
+              <p className="text-sm text-slate-500">Your weekly meal plan</p>
+            </div>
+            <Button
+              onClick={handleOpenAddWeekModal}
+              className="h-9 text-white"
+              style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Week
+            </Button>
           </div>
-          <Button
-            onClick={handleOpenAddWeekModal}
-            className="h-9 text-white"
-            style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Week
-          </Button>
+          
+          {/* Help tip for new users */}
+          {(!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-3">
+              <div className="text-blue-600 text-xl">💡</div>
+              <div className="flex-1">
+                <p className="text-sm text-blue-900 mb-1 font-medium">
+                  Start Planning Your Meals
+                </p>
+                <p className="text-xs text-blue-700">
+                  Click <span className="font-semibold">"Add Week"</span> above to plan your meals for the week. 
+                  We'll recommend recipes based on your cycle phase and preferences!
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
