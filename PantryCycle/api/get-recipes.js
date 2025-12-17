@@ -88,31 +88,32 @@ export default async function handler(req, res) {
     }
 
     // Filter OUT recipes containing allergens
+    // If user has allergen X, only show recipes where no_X = TRUE (meaning recipe is safe/free from X)
     if (allergens) {
       const allergenList = allergens.split(',').map(a => a.trim());
       
       for (const allergen of allergenList) {
         switch (allergen) {
           case 'Dairy':
-            conditions.push('(no_dairy = TRUE OR no_dairy IS NULL)');
+            conditions.push('no_dairy = TRUE');
             break;
           case 'Eggs':
-            conditions.push('(no_eggs = TRUE OR no_eggs IS NULL)');
+            conditions.push('no_eggs = TRUE');
             break;
           case 'Peanuts':
-            conditions.push('(no_peanuts = TRUE OR no_peanuts IS NULL)');
+            conditions.push('no_peanuts = TRUE');
             break;
           case 'Tree Nuts':
-            conditions.push('(no_treenuts = TRUE OR no_treenuts IS NULL)');
+            conditions.push('no_treenuts = TRUE');
             break;
           case 'Wheat':
-            conditions.push('(no_wheat = TRUE OR no_wheat IS NULL)');
+            conditions.push('no_wheat = TRUE');
             break;
           case 'Soy':
-            conditions.push('(no_soy = TRUE OR no_soy IS NULL)');
+            conditions.push('no_soy = TRUE');
             break;
           case 'Shellfish':
-            conditions.push('(no_shellfish = TRUE OR no_shellfish IS NULL)');
+            conditions.push('no_shellfish = TRUE');
             break;
         }
       }

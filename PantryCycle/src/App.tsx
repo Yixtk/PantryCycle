@@ -342,9 +342,25 @@ export default function App() {
         />
       )}
 
-      {appState === 'recipes' && (
+      {appState === 'recipes' && userProfile && (
         <RecipeListPage
-          recipes={savedRecipes}
+          recipes={(() => {
+            // Get all selected recipes from week blocks
+            const selectedRecipeIds = new Set<number>();
+            if (userProfile.weekBlocks) {
+              userProfile.weekBlocks.forEach(block => {
+                Object.values(block.meals).forEach(dayMeals => {
+                  dayMeals.forEach(meal => {
+                    if (typeof meal !== 'string' && meal.recipeId) {
+                      selectedRecipeIds.add(meal.recipeId);
+                    }
+                  });
+                });
+              });
+            }
+            // Return recipes that match the selected IDs
+            return recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
+          })()}
           onRecipeClick={handleRecipeClick}
           onNavigate={handleNavigate}
         />

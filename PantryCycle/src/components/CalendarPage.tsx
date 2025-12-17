@@ -841,16 +841,8 @@ export function CalendarPage({
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
-              <p className="text-sm text-slate-500">Your weekly meal plan</p>
+              <p className="text-sm text-slate-500">Click any day to plan your meals</p>
             </div>
-            <Button
-              onClick={handleOpenAddWeekModal}
-              className="h-9 text-white"
-              style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Week
-            </Button>
           </div>
           
           {/* Help tip for new users */}

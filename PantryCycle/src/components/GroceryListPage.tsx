@@ -20,14 +20,28 @@ interface GroceryListPageProps {
 }
 
 export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryListPageProps) {
-  // Generate grocery items from selected recipes in week blocks
+  // Generate grocery items from selected recipes in week blocks (next 7 days only)
   const generateGroceryItems = useCallback((): GroceryItem[] => {
     const ingredientsMap: { [key: string]: { quantity: string; count: number } } = {};
     let itemId = 1;
 
-    // Extract all recipe IDs from week blocks
+    // Get date range for next 7 days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    nextWeek.setHours(23, 59, 59, 999);
+
+    // Extract all recipe IDs from week blocks (only within next 7 days)
     if (userProfile.weekBlocks && userProfile.weekBlocks.length > 0) {
       userProfile.weekBlocks.forEach(weekBlock => {
+        const blockStart = new Date(weekBlock.startDate);
+        const blockEnd = new Date(weekBlock.endDate);
+        
+        // Skip blocks that are entirely outside the next 7 days
+        if (blockEnd < today || blockStart > nextWeek) {
+          return;
+        }
         Object.values(weekBlock.meals).forEach(dayMeals => {
           dayMeals.forEach(mealAssignment => {
             if (typeof mealAssignment !== 'string' && mealAssignment.recipeId) {
