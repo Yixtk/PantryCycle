@@ -909,66 +909,6 @@ export function CalendarPage({
             </div>
           </div>
         </div>
-
-        {/* Recommended Recipes Section */}
-        {recipes && recipes.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <h3 className="text-lg mb-3" style={{ color: COLORS.sageDark }}>
-              🍽️ Recommended Recipes for You
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">
-              Based on your dietary preferences and cycle phase
-            </p>
-            <div className="space-y-3">
-              {recipes.slice(0, 5).map((recipe) => {
-                const phaseColor = recipe.phase === 'Menstrual' ? COLORS.menstrual :
-                                  recipe.phase === 'Follicular' ? COLORS.follicular :
-                                  recipe.phase === 'Ovulation' ? COLORS.ovulation :
-                                  COLORS.luteal;
-                const phaseTextColor = recipe.phase === 'Menstrual' ? COLORS.menstrualText :
-                                      recipe.phase === 'Follicular' ? COLORS.follicularText :
-                                      recipe.phase === 'Ovulation' ? COLORS.ovulationText :
-                                      COLORS.lutealText;
-                
-                return (
-                  <div
-                    key={recipe.id}
-                    onClick={() => onRecipeClick(recipe)}
-                    className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 cursor-pointer transition-all hover:shadow-md"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-base font-medium" style={{ color: COLORS.sageDark }}>
-                        {recipe.name}
-                      </h4>
-                      <span
-                        className="px-2 py-1 rounded-lg text-xs font-medium"
-                        style={{ backgroundColor: phaseColor, color: phaseTextColor }}
-                      >
-                        {recipe.phase || 'General'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span>🔥 {recipe.calories} cal</span>
-                      <span>🍽️ {recipe.servings} serving{recipe.servings > 1 ? 's' : ''}</span>
-                      {recipe.mealTypes.breakfast && <span>🌅 Breakfast</span>}
-                      {recipe.mealTypes.lunch && <span>☀️ Lunch</span>}
-                      {recipe.mealTypes.dinner && <span>🌙 Dinner</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {recipes.length > 5 && (
-              <Button
-                onClick={() => onNavigate('recipes')}
-                className="w-full mt-4"
-                style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`, color: 'white' }}
-              >
-                View All {recipes.length} Recommended Recipes
-              </Button>
-            )}
-          </div>
-        )}
       </div>
 
       {showAddWeekModal && (
