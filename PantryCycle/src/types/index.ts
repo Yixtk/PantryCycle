@@ -71,27 +71,47 @@ export interface Allergy {
 }
 
 // Also update your Recipe interface to include the new fields:
+// Update your Recipe interface in src/types/index.ts to this:
+
 export interface Recipe {
-  id: number;  // Changed from string to number
+  id: number;  // Database uses numbers
   name: string;
-  description: string;
-  ingredients: { [key: string]: string }; // e.g., {"chicken": "1 lb"}
+  description?: string;
+  
+  // Ingredients can be either format (for backwards compatibility)
+  ingredients: { [key: string]: string } | { item: string; amount: string }[];
+  
   instructions: string[];
   prepTime?: number;
   cookTime?: number;
   servings: number;
   calories: number;
+  
   nutritionPerServing?: {
-    calories: number;
-    protein: number;
-    [key: string]: number;
+    calories?: number;
+    protein?: number;
+    [key: string]: number | undefined;
   };
+  
+  // Support both image and imageUrl
+  image?: string;
   imageUrl?: string;
-  phase: string; // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
-  mealTypes: {
+  
+  phase?: string;  // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
+  cyclePhase?: 'menstrual' | 'follicular' | 'ovulation' | 'luteal';  // For mock recipes
+  
+  mealTypes?: {
     breakfast: boolean;
     lunch: boolean;
     dinner: boolean;
+  };
+  
+  // Legacy nutrition format (for mock recipes)
+  nutrition?: {
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
   };
 }
 
