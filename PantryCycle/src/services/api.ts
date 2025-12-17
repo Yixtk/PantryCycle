@@ -298,14 +298,25 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 // ============================================
 
 export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
-  // TODO: Replace with actual API call
-  // This should return recipes based on user's cycle phase, preferences, and allergies
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/recommended`);
-  // return response.json();
-  
-  // Mock response - return mock recipes
-  const { mockRecipes } = await import('../components/RecipeData');
-  return mockRecipes;
+  try {
+    // Get all recipes from database (will be filtered in UI based on user preferences)
+    const response = await fetch(`/api/get-recipes?limit=1000`);
+    
+    if (!response.ok) {
+      console.error('Failed to fetch recommended recipes from API');
+      // Fallback to mock recipes
+      const { mockRecipes } = await import('../components/RecipeData');
+      return mockRecipes;
+    }
+    
+    const data = await response.json();
+    return data.recipes || [];
+  } catch (error) {
+    console.error('Get recommended recipes error:', error);
+    // Fallback to mock recipes
+    const { mockRecipes } = await import('../components/RecipeData');
+    return mockRecipes;
+  }
 }
 
 // NEW: Get recipes with filters
