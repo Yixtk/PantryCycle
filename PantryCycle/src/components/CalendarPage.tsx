@@ -763,26 +763,32 @@ export function CalendarPage({
       <button
         key={day}
         onClick={() => handleDayClick(day)}
-        className="aspect-square rounded-lg transition-all flex flex-col overflow-hidden hover:shadow-md cursor-pointer"
+        className="aspect-square rounded-lg transition-all flex flex-col overflow-hidden hover:shadow-md cursor-pointer relative"
         style={{
           borderColor: isToday ? COLORS.sage : borderColor,
           borderWidth: isToday ? '2px' : borderWidth,
           borderStyle: borderStyle
         }}
       >
+        {/* Clickable date number area - expanded for better touch target */}
         <div 
-          className="text-[10px] text-center py-0.5" 
+          className="text-[10px] text-center py-1.5 cursor-pointer z-10" 
           style={{ 
             color: textColor, 
             fontWeight: isToday ? '600' : '400',
-            backgroundColor: bgColor 
+            backgroundColor: bgColor,
+            minHeight: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           {day}
         </div>
         
+        {/* Meal slots area - separated from date click */}
         {recipesForDay.length > 0 ? (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col" onClick={(e) => e.stopPropagation()}>
             {recipesForDay.map((mealRecipe, idx) => {
               const mealColors = {
                 breakfast: '#fde68a',
@@ -814,7 +820,10 @@ export function CalendarPage({
               return (
                 <button
                   key={idx}
-                  onClick={() => onRecipeClick(mealRecipe.recipe!)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRecipeClick(mealRecipe.recipe!);
+                  }}
                   className="flex-1 text-[10px] transition-all hover:opacity-80 flex items-center justify-center font-medium"
                   style={{ backgroundColor: mealColor, color: mealTextColor }}
                   title={`${mealRecipe.meal.charAt(0).toUpperCase() + mealRecipe.meal.slice(1)}: ${mealRecipe.recipe.name}`}
