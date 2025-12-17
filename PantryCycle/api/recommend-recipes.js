@@ -202,32 +202,40 @@ export default async function handler(req, res) {
 
     const recipesResult = await pool.query(query, params);
 
-    // Format recipes for frontend
-    const recipes = recipesResult.rows.map(row => ({
-      id: row.id,
-      name: row.recipe_title,
-      description: row.category || '',
-      ingredients: typeof row.ingredients === 'string' 
-        ? JSON.parse(row.ingredients) 
-        : row.ingredients,
-      instructions: typeof row.cooking_instructions === 'string' 
-        ? JSON.parse(row.cooking_instructions) 
-        : row.cooking_instructions,
-      prepTime: 0,
-      cookTime: 0,
-      servings: row.serving_size || 1,
-      calories: row.nutrition_calories || 0,
-      nutritionPerServing: typeof row.nutrition_per_serving === 'string' 
-        ? JSON.parse(row.nutrition_per_serving) 
-        : row.nutrition_per_serving,
-      imageUrl: '',
-      phase: row.menstrual_phase_tag,
-      mealTypes: {
-        breakfast: row.breakfast || false,
-        lunch: row.lunch || false,
-        dinner: row.dinner || false
-      }
-    }));
+    // Format recipes for frontend with safe JSON parsing
+    const recipes = recipesResult.rows.map(row => {
+      // Safe JSON parse function
+      const safeJsonParse = (value, fallback = {}) => {
+        if (!value) return fallback;
+        if (typeof value === 'object') return value;
+        try {
+          return JSON.parse(value);
+        } catch (error) {
+          console.warn(`JSON parse error for recipe ${row.id}:`, error.message);
+          return fallback;
+        }
+      };
+
+      return {
+        id: row.id,
+        name: row.recipe_title,
+        description: row.category || '',
+        ingredients: safeJsonParse(row.ingredients, {}),
+        instructions: safeJsonParse(row.cooking_instructions, []),
+        prepTime: 0,
+        cookTime: 0,
+        servings: row.serving_size || 1,
+        calories: row.nutrition_calories || 0,
+        nutritionPerServing: safeJsonParse(row.nutrition_per_serving, {}),
+        imageUrl: '',
+        phase: row.menstrual_phase_tag,
+        mealTypes: {
+          breakfast: row.breakfast || false,
+          lunch: row.lunch || false,
+          dinner: row.dinner || false
+        }
+      };
+    });
 
     console.log(`Recommended ${recipes.length} recipes for phase: ${currentPhase}`);
 

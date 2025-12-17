@@ -146,26 +146,40 @@ export default async function handler(req, res) {
 
     const result = await pool.query(query, params);
 
-    // Transform to frontend format
-    const recipes = result.rows.map(row => ({
-      id: row.id,
-      name: row.recipe_title,
-      description: row.category || '',
-      ingredients: typeof row.ingredients === 'string' ? JSON.parse(row.ingredients) : row.ingredients,
-      instructions: typeof row.cooking_instructions === 'string' ? JSON.parse(row.cooking_instructions) : row.cooking_instructions,
-      prepTime: 0, // Not in your schema
-      cookTime: 0, // Not in your schema
-      servings: row.serving_size || 1,
-      calories: row.nutrition_calories || 0,
-      nutritionPerServing: typeof row.nutrition_per_serving === 'string' ? JSON.parse(row.nutrition_per_serving) : row.nutrition_per_serving,
-      imageUrl: '', // Not in your schema
-      phase: row.menstrual_phase_tag,
-      mealTypes: {
-        breakfast: row.breakfast,
-        lunch: row.lunch,
-        dinner: row.dinner
-      }
-    }));
+    // Transform to frontend format with safe JSON parsing
+    const recipes = result.rows.map(row => {
+      // Safe JSON parse function
+      const safeJsonParse = (value, fallback = {}) => {
+        if (!value) return fallback;
+        if (typeof value === 'object') return value;
+        try {
+          return JSON.parse(value);
+        } catch (error) {
+          console.warn(`JSON parse error for recipe ${row.id}:`, error.message);
+          return fallback;
+        }
+      };
+
+      return {
+        id: row.id,
+        name: row.recipe_title,
+        description: row.category || '',
+        ingredients: safeJsonParse(row.ingredients, {}),
+        instructions: safeJsonParse(row.cooking_instructions, []),
+        prepTime: 0,
+        cookTime: 0,
+        servings: row.serving_size || 1,
+        calories: row.nutrition_calories || 0,
+        nutritionPerServing: safeJsonParse(row.nutrition_per_serving, {}),
+        imageUrl: '',
+        phase: row.menstrual_phase_tag,
+        mealTypes: {
+          breakfast: row.breakfast,
+          lunch: row.lunch,
+          dinner: row.dinner
+        }
+      };
+    });
 
     return res.status(200).json({ recipes, count: recipes.length });
 
