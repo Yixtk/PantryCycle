@@ -126,7 +126,6 @@ export default async function handler(req, res) {
         ingredients,
         cooking_instructions,
         category,
-        nutrition,
         serving_size,
         nutrition_per_serving,
         breakfast,
@@ -156,7 +155,7 @@ export default async function handler(req, res) {
       prepTime: 0, // Not in your schema
       cookTime: 0, // Not in your schema
       servings: row.serving_size || 1,
-      calories: row.nutrition || 0,
+      calories: row.nutrition_per_serving?.calories || 0, // Get calories from nutrition_per_serving
       nutritionPerServing: typeof row.nutrition_per_serving === 'string' ? JSON.parse(row.nutrition_per_serving) : row.nutrition_per_serving,
       imageUrl: '', // Not in your schema
       phase: row.menstrual_phase_tag,
