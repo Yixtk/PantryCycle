@@ -771,11 +771,15 @@ export function CalendarPage({
         }}
       >
         <div 
-          className="text-[10px] text-center py-0.5 landscape:py-2 landscape:text-xs" 
+          className="text-xs text-center py-2" 
           style={{ 
             color: textColor, 
             fontWeight: isToday ? '600' : '400',
-            backgroundColor: bgColor 
+            backgroundColor: bgColor,
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           {day}
