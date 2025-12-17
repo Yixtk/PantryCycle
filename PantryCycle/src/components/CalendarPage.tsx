@@ -632,7 +632,21 @@ export function CalendarPage({
     setEditingMealType(null);
     setRecipeOptions([]);
     setSelectedEditDate(null);
+    // Re-enable body scroll
+    document.body.style.overflow = 'unset';
   };
+
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (showEditDayModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showEditDayModal]);
 
   // ========== CALENDAR GENERATION ==========
 
@@ -844,7 +858,7 @@ export function CalendarPage({
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(to bottom, #e1e5de 0%, #f0f2ef 50%, #ffffff 100%)' }}>
-      <div className="flex-1 p-4 pb-20 overflow-y-auto">
+      <div className={`flex-1 p-4 pb-20 overflow-y-auto ${showEditDayModal ? 'overflow-hidden' : ''}`}>
         
         <div className="mb-6 pt-2">
           <div className="flex items-center justify-between mb-3">
@@ -1248,8 +1262,8 @@ export function CalendarPage({
 
       {/* Edit Day Modal */}
       {showEditDayModal && selectedEditDate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" style={{ zIndex: 10000 }}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl" style={{ color: COLORS.sageDark }}>
