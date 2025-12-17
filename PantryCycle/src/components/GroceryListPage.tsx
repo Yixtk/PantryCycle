@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Home, BookOpen, User, ShoppingCart, Plus, Trash2, Edit2, Save, X, Droplet } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,7 +21,7 @@ interface GroceryListPageProps {
 
 export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryListPageProps) {
   // Generate grocery items from selected recipes in week blocks
-  const generateGroceryItems = (): GroceryItem[] => {
+  const generateGroceryItems = useCallback((): GroceryItem[] => {
     const ingredientsMap: { [key: string]: { quantity: string; count: number } } = {};
     let itemId = 1;
 
@@ -114,7 +114,7 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
 
     // If no items from recipes, return empty array
     return items.length > 0 ? items : [];
-  };
+  }, [recipes, userProfile]);
 
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
 
@@ -122,7 +122,7 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
   useEffect(() => {
     const items = generateGroceryItems();
     setGroceryItems(items);
-  }, [userProfile, recipes]);
+  }, [generateGroceryItems]);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
 
