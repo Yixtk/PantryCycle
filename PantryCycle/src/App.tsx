@@ -358,7 +358,11 @@ export default function App() {
                 });
               });
             }
-            // Return recipes that match the selected IDs
+            // If no recipes selected, show all recommended recipes
+            if (selectedRecipeIds.size === 0) {
+              return recommendedRecipes;
+            }
+            // Otherwise, return only selected recipes
             return recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
           })()}
           onRecipeClick={handleRecipeClick}
