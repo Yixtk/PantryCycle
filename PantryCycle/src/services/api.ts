@@ -298,14 +298,21 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 // ============================================
 
 export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
-  // TODO: Replace with actual API call
-  // This should return recipes based on user's cycle phase, preferences, and allergies
-  // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/recommended`);
-  // return response.json();
-  
-  // Mock response - return mock recipes
-  const { mockRecipes } = await import('../components/RecipeData');
-  return mockRecipes;
+  try {
+    const response = await fetch(`/api/recommend-recipes?userId=${userId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to get recommendations');
+    }
+    
+    const data = await response.json();
+    return data.recipes || [];
+  } catch (error) {
+    console.error('Get recommendations error:', error);
+    // Fallback to mock data if API fails
+    const { mockRecipes } = await import('../components/RecipeData');
+    return mockRecipes.slice(0, 5);
+  }
 }
 
 // NEW: Get recipes with filters
@@ -378,7 +385,7 @@ export async function getSavedRecipes(userId: string): Promise<Recipe[]> {
   return [];
 }
 
-export async function saveRecipe(userId: string, recipeId: string, rating?: number): Promise<SavedRecipe> {
+export async function saveRecipe(userId: string, recipeId: number, rating?: number): Promise<SavedRecipe> {
   // TODO: Replace with actual API call
   // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved`, {
   //   method: 'POST',
@@ -397,7 +404,7 @@ export async function saveRecipe(userId: string, recipeId: string, rating?: numb
   };
 }
 
-export async function unsaveRecipe(userId: string, recipeId: string): Promise<void> {
+export async function unsaveRecipe(userId: string, recipeId: number): Promise<void> {
   // TODO: Replace with actual API call
   // await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved/${recipeId}`, {
   //   method: 'DELETE'
