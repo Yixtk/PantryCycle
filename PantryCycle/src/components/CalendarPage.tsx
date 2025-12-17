@@ -551,10 +551,14 @@ export function CalendarPage({
             // Get existing meals for this day
             const existingMeals = block.meals[dayOfWeek] || [];
             
+            console.log('Existing meals for day', dayOfWeek, ':', existingMeals);
+            
             // Check if this meal type already exists
             const mealIndex = existingMeals.findIndex(m => 
               typeof m === 'string' ? m === editingMealType : m.meal === editingMealType
             );
+            
+            console.log('Meal index for', editingMealType, ':', mealIndex);
             
             let updatedDayMeals;
             if (mealIndex >= 0) {
@@ -577,6 +581,8 @@ export function CalendarPage({
               ];
             }
             
+            console.log('Updated day meals:', updatedDayMeals);
+            
             return {
               ...block,
               meals: {
@@ -589,17 +595,17 @@ export function CalendarPage({
         });
         
         if (onUpdateProfile) {
+          console.log('Sending updated week blocks to API:', updatedWeekBlocks);
           await onUpdateProfile({ weekBlocks: updatedWeekBlocks });
+          console.log('Profile updated successfully');
         }
       }
       
-      // Close modals and reset state
-      setShowEditDayModal(false);
+      // Don't close modal immediately - keep it open for adding more meals
       setEditingMealType(null);
       setRecipeOptions([]);
-      setSelectedEditDate(null);
       
-      console.log('Recipe saved successfully. RecipeId:', recipe?.id);
+      console.log('Recipe saved successfully. RecipeId:', recipe?.id, 'Meal:', editingMealType);
     } catch (error) {
       console.error('Error updating recipe:', error);
       alert('Failed to update recipe. Please try again.');
