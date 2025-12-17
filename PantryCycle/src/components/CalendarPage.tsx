@@ -64,6 +64,7 @@ export function CalendarPage({
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [showRecipeAdded, setShowRecipeAdded] = useState(false);
+  const [cachedRecipes, setCachedRecipes] = useState<Map<number, Recipe>>(new Map());
 
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
@@ -500,11 +501,15 @@ export function CalendarPage({
   const handleSelectRecipe = async (recipe: Recipe | null) => {
     if (!selectedEditDate || !editingMealType) return;
 
-    // Show feedback animation
+    // Show feedback animation and cache the recipe
     if (recipe) {
       setSelectedRecipeId(recipe.id);
       setShowRecipeAdded(true);
       setTimeout(() => setShowRecipeAdded(false), 2000);
+      
+      // Cache the selected recipe so it's available later
+      setCachedRecipes(prev => new Map(prev).set(recipe.id, recipe));
+      console.log('Cached recipe:', recipe.id, recipe.name);
     }
 
     try {
@@ -593,6 +598,8 @@ export function CalendarPage({
       setEditingMealType(null);
       setRecipeOptions([]);
       setSelectedEditDate(null);
+      
+      console.log('Recipe saved successfully. RecipeId:', recipe?.id);
     } catch (error) {
       console.error('Error updating recipe:', error);
       alert('Failed to update recipe. Please try again.');
@@ -709,7 +716,17 @@ export function CalendarPage({
       }
 
       // Find the recipe in the loaded recipes
-      const recipe = recipes.find(r => r.id === mealAssignment.recipeId);
+      let recipe = recipes.find(r => r.id === mealAssignment.recipeId);
+      
+      // If not found in loaded recipes, check cache
+      if (!recipe && cachedRecipes.has(mealAssignment.recipeId)) {
+        recipe = cachedRecipes.get(mealAssignment.recipeId);
+      }
+      
+      // Debug: log if recipe not found
+      if (!recipe) {
+        console.warn(`Recipe not found for ID ${mealAssignment.recipeId}. Will need to fetch from API.`);
+      }
       
       return {
         meal: mealAssignment.meal,
