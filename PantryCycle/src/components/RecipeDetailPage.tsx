@@ -1,5 +1,5 @@
 import { ChevronLeft, Clock, Users, Flame, Minus, Plus, Star } from 'lucide-react';
-import { Recipe } from './RecipeData';
+import { Recipe } from '../types';
 import { Button } from './ui/button';
 import { useState } from 'react';
 
@@ -45,7 +45,7 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
         {/* Header Image */}
         <div className="relative h-64">
           <img
-            src={recipe.image}
+            src={recipe.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'}
             alt={recipe.name}
             className="w-full h-full object-cover"
           />
@@ -58,16 +58,16 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
             <div className="flex items-start justify-between gap-3">
               <h1 className="text-white flex-1">{recipe.name}</h1>
-              {recipe.cyclePhase && PHASE_COLORS[recipe.cyclePhase] && (
+              {recipe.phase && PHASE_COLORS[recipe.phase.toLowerCase()] && (
                 <span
                   className="px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 flex-shrink-0"
                   style={{
-                    backgroundColor: PHASE_COLORS[recipe.cyclePhase].bg,
-                    color: PHASE_COLORS[recipe.cyclePhase].text
+                    backgroundColor: PHASE_COLORS[recipe.phase.toLowerCase()].bg,
+                    color: PHASE_COLORS[recipe.phase.toLowerCase()].text
                   }}
                 >
-                  <span className="text-sm">{PHASE_COLORS[recipe.cyclePhase].icon}</span>
-                  <span className="capitalize font-medium">{recipe.cyclePhase}</span>
+                  <span className="text-sm">{PHASE_COLORS[recipe.phase.toLowerCase()].icon}</span>
+                  <span className="capitalize font-medium">{recipe.phase}</span>
                 </span>
               )}
             </div>
@@ -109,27 +109,29 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
         </div>
 
         {/* Nutrition */}
-        <div className="bg-white mx-4 rounded-2xl shadow-lg p-4 mb-4">
-          <h2 className="text-slate-900 mb-3">Nutrition per serving</h2>
-          <div className="grid grid-cols-4 gap-3">
-            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
-              <div className="text-slate-900 mb-1">{recipe.nutrition.protein}g</div>
-              <div className="text-xs text-slate-600">Protein</div>
-            </div>
-            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#e1e5de' }}>
-              <div className="text-slate-900 mb-1">{recipe.nutrition.carbs}g</div>
-              <div className="text-xs text-slate-600">Carbs</div>
-            </div>
-            <div className="bg-yellow-50 rounded-xl p-3 text-center">
-              <div className="text-slate-900 mb-1">{recipe.nutrition.fat}g</div>
-              <div className="text-xs text-slate-600">Fat</div>
-            </div>
-            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
-              <div className="text-slate-900 mb-1">{recipe.nutrition.fiber}g</div>
-              <div className="text-xs text-slate-600">Fiber</div>
+        {recipe.nutritionPerServing && (
+          <div className="bg-white mx-4 rounded-2xl shadow-lg p-4 mb-4">
+            <h2 className="text-slate-900 mb-3">Nutrition per serving</h2>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
+                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.protein || 0}g</div>
+                <div className="text-xs text-slate-600">Protein</div>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#e1e5de' }}>
+                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['unsaturated fat'] || 0}g</div>
+                <div className="text-xs text-slate-600">Unsat. Fat</div>
+              </div>
+              <div className="bg-yellow-50 rounded-xl p-3 text-center">
+                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['saturated fat'] || 0}g</div>
+                <div className="text-xs text-slate-600">Sat. Fat</div>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
+                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.fiber || 0}g</div>
+                <div className="text-xs text-slate-600">Fiber</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Adjust Servings */}
         <div className="bg-white mx-4 rounded-2xl shadow-lg p-4 mb-4">
@@ -220,7 +222,7 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
             <div className="bg-white rounded-2xl shadow-lg p-4">
               <h2 className="text-slate-900 mb-4">Ingredients</h2>
               <div className="space-y-3">
-                {recipe.ingredients.map((ingredient, index) => (
+                {Object.entries(recipe.ingredients).map(([item, amount], index) => (
                   <div
                     key={index}
                     className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0"
@@ -229,9 +231,9 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <span className="text-slate-900">{ingredient.item}</span>
+                      <span className="text-slate-900 capitalize">{item}</span>
                     </div>
-                    <div className="text-sm text-slate-600">{ingredient.amount}</div>
+                    <div className="text-sm text-slate-600">{amount}</div>
                   </div>
                 ))}
               </div>
