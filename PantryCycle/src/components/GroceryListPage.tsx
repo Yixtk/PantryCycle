@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Home, BookOpen, User, ShoppingCart, Plus, Trash2, Edit2, Save, X, Droplet } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Recipe, UserProfile } from '../types';
 
 interface GroceryItem {
   id: number;
@@ -14,30 +15,114 @@ interface GroceryItem {
 
 interface GroceryListPageProps {
   onNavigate: (page: string) => void;
-  recipes?: any[];
+  recipes: Recipe[];
+  userProfile: UserProfile;
 }
 
-export function GroceryListPage({ onNavigate, recipes = [] }: GroceryListPageProps) {
-  // Generate initial grocery items from recipes
-  const generateGroceryItems = (): GroceryItem[] => {
-    const items: GroceryItem[] = [
-      { id: 1, name: 'Quinoa', quantity: '2 cups', expirationDate: '2025-12-31', category: 'Grains' },
-      { id: 2, name: 'Chickpeas', quantity: '3 cans', expirationDate: '2026-06-15', category: 'Canned Goods' },
-      { id: 3, name: 'Salmon fillets', quantity: '4 fillets (6 oz each)', expirationDate: '2025-11-25', category: 'Proteins' },
-      { id: 4, name: 'Avocado', quantity: '4', expirationDate: '2025-11-22', category: 'Produce' },
-      { id: 5, name: 'Spinach', quantity: '2 bags', expirationDate: '2025-11-24', category: 'Produce' },
-      { id: 6, name: 'Sweet potatoes', quantity: '6 medium', expirationDate: '2025-12-05', category: 'Produce' },
-      { id: 7, name: 'Eggs', quantity: '1 dozen', expirationDate: '2025-12-01', category: 'Dairy' },
-      { id: 8, name: 'Almond milk', quantity: '1 carton', expirationDate: '2025-11-30', category: 'Dairy' },
-      { id: 9, name: 'Cherry tomatoes', quantity: '2 pints', expirationDate: '2025-11-26', category: 'Produce' },
-      { id: 10, name: 'Olive oil', quantity: '1 bottle', expirationDate: '2026-03-15', category: 'Pantry' },
-      { id: 11, name: 'Garlic', quantity: '2 bulbs', expirationDate: '2025-12-10', category: 'Produce' },
-      { id: 12, name: 'Broccoli', quantity: '2 heads', expirationDate: '2025-11-25', category: 'Produce' },
-    ];
-    return items;
-  };
+export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryListPageProps) {
+  // Generate grocery items from selected recipes in week blocks
+  const generateGroceryItems = useCallback((): GroceryItem[] => {
+    const ingredientsMap: { [key: string]: { quantity: string; count: number } } = {};
+    let itemId = 1;
 
-  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>(generateGroceryItems());
+    // Extract all recipe IDs from week blocks
+    if (userProfile.weekBlocks && userProfile.weekBlocks.length > 0) {
+      userProfile.weekBlocks.forEach(weekBlock => {
+        Object.values(weekBlock.meals).forEach(dayMeals => {
+          dayMeals.forEach(mealAssignment => {
+            if (typeof mealAssignment !== 'string' && mealAssignment.recipeId) {
+              // Find the recipe
+              const recipe = recipes.find(r => r.id === mealAssignment.recipeId);
+              
+              if (recipe && recipe.ingredients) {
+                // Parse ingredients (can be object or array)
+                let ingredientsList: { item: string; amount: string }[] = [];
+                
+                if (Array.isArray(recipe.ingredients)) {
+                  ingredientsList = recipe.ingredients;
+                } else if (typeof recipe.ingredients === 'object') {
+                  // Convert { "item": "amount" } to array format
+                  ingredientsList = Object.entries(recipe.ingredients).map(([item, amount]) => ({
+                    item,
+                    amount: String(amount)
+                  }));
+                }
+                
+                // Add to ingredients map
+                ingredientsList.forEach(({ item, amount }) => {
+                  const normalizedItem = item.toLowerCase().trim();
+                  
+                  if (ingredientsMap[normalizedItem]) {
+                    // Item already exists - for now, just increment count
+                    ingredientsMap[normalizedItem].count++;
+                  } else {
+                    ingredientsMap[normalizedItem] = {
+                      quantity: amount,
+                      count: 1
+                    };
+                  }
+                });
+              }
+            }
+          });
+        });
+      });
+    }
+
+    // Convert map to array with proper quantities
+    const items: GroceryItem[] = Object.entries(ingredientsMap).map(([name, { quantity, count }]) => {
+      // Generate expiration date (7 days from now for produce, 30 days for others)
+      const daysToAdd = name.includes('produce') || name.includes('vegetable') || 
+                        name.includes('fruit') || name.includes('lettuce') || 
+                        name.includes('spinach') || name.includes('herb') ? 7 : 30;
+      
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + daysToAdd);
+      
+      // Determine category
+      let category = 'Other';
+      if (name.includes('chicken') || name.includes('beef') || name.includes('pork') || 
+          name.includes('fish') || name.includes('salmon') || name.includes('shrimp') ||
+          name.includes('tofu')) {
+        category = 'Proteins';
+      } else if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt') || 
+                 name.includes('butter') || name.includes('egg')) {
+        category = 'Dairy';
+      } else if (name.includes('rice') || name.includes('pasta') || name.includes('bread') || 
+                 name.includes('flour') || name.includes('oat') || name.includes('quinoa')) {
+        category = 'Grains';
+      } else if (name.includes('tomato') || name.includes('lettuce') || name.includes('spinach') ||
+                 name.includes('carrot') || name.includes('onion') || name.includes('pepper') ||
+                 name.includes('broccoli') || name.includes('potato') || name.includes('avocado')) {
+        category = 'Produce';
+      } else if (name.includes('oil') || name.includes('sauce') || name.includes('spice') ||
+                 name.includes('salt') || name.includes('pepper') || name.includes('vinegar')) {
+        category = 'Pantry';
+      }
+      
+      // If count > 1, update quantity to show multiple needed
+      const displayQuantity = count > 1 ? `${quantity} (×${count})` : quantity;
+      
+      return {
+        id: itemId++,
+        name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize first letter
+        quantity: displayQuantity,
+        expirationDate: expirationDate.toISOString().split('T')[0],
+        category
+      };
+    });
+
+    // If no items from recipes, return empty array
+    return items.length > 0 ? items : [];
+  }, [recipes, userProfile]);
+
+  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
+
+  // Regenerate grocery list when userProfile or recipes change
+  useEffect(() => {
+    const items = generateGroceryItems();
+    setGroceryItems(items);
+  }, [generateGroceryItems]);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
 
@@ -149,12 +234,33 @@ export function GroceryListPage({ onNavigate, recipes = [] }: GroceryListPagePro
 
           {/* Intro text */}
           <p className="text-xs text-slate-600 text-center">
-            Here's a grocery list based on the recipes generated for your unique needs throughout your cycle.
+            {groceryItems.length > 0 
+              ? "Here's a grocery list based on the recipes you've selected in your meal plan."
+              : "Add meals to your calendar to automatically generate your grocery list."}
           </p>
         </div>
 
+        {/* Empty state */}
+        {groceryItems.length === 0 && !isAddingItem && (
+          <div className="bg-white rounded-xl shadow-sm p-8 mb-4 text-center">
+            <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+            <h3 className="text-sm mb-2" style={{ color: '#5a6b54' }}>No meals planned yet</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Go to your Calendar and add meals to your week to see ingredients here.
+            </p>
+            <Button
+              onClick={() => onNavigate('calendar')}
+              size="sm"
+              className="text-white"
+              style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}
+            >
+              Go to Calendar
+            </Button>
+          </div>
+        )}
+
         {/* Add Item Button */}
-        {!isAddingItem && (
+        {!isAddingItem && groceryItems.length > 0 && (
           <Button
             onClick={() => setIsAddingItem(true)}
             className="w-full mb-4 text-white"

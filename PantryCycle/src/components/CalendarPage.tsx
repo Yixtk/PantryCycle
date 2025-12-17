@@ -56,6 +56,13 @@ export function CalendarPage({
   const [recommendedRecipesForWeek, setRecommendedRecipesForWeek] = useState<{ [key: string]: Recipe[] }>({});
   const [selectedRecipesForMeals, setSelectedRecipesForMeals] = useState<{ [key: string]: number | null }>({});
 
+  // Edit Day Modal state
+  const [showEditDayModal, setShowEditDayModal] = useState(false);
+  const [selectedEditDate, setSelectedEditDate] = useState<Date | null>(null);
+  const [editingMealType, setEditingMealType] = useState<string | null>(null);
+  const [recipeOptions, setRecipeOptions] = useState<Recipe[]>([]);
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(false);
+
   useEffect(() => {
     if (userProfile.periodHistory && userProfile.periodHistory.length > 0) {
       setPastPeriods(userProfile.periodHistory);
@@ -451,6 +458,182 @@ export function CalendarPage({
     }));
   };
 
+  // ========== EDIT DAY MODAL FUNCTIONS ==========
+
+  const handleDayClick = (day: number) => {
+    const clickedDate = new Date(year, month, day);
+    setSelectedEditDate(clickedDate);
+    setShowEditDayModal(true);
+  };
+
+  const handleSelectMealToEdit = async (mealType: string) => {
+    if (!selectedEditDate) return;
+    
+    setEditingMealType(mealType);
+    setIsLoadingRecipes(true);
+    
+    try {
+      // Calculate phase for this date
+      const phaseRaw = getPhaseForDate(selectedEditDate);
+      const phase = getPhaseNameForAPI(phaseRaw);
+      
+      // Fetch recipes that match this phase, meal type, and user preferences
+      const matchingRecipes = await api.getRecipes({
+        phase: phase,
+        mealType: mealType,
+        dietary: userProfile.dietaryPreferences,
+        allergens: userProfile.allergies.map(a => a.type),
+        limit: 10 // Get 10 options for user to choose from
+      });
+      
+      setRecipeOptions(matchingRecipes);
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+      setRecipeOptions([]);
+    } finally {
+      setIsLoadingRecipes(false);
+    }
+  };
+
+  const handleSelectRecipe = async (recipe: Recipe | null) => {
+    if (!selectedEditDate || !editingMealType) return;
+
+    try {
+      // Find the week block for this date
+      const dayOfWeek = selectedEditDate.getDay();
+      const weekBlock = getWeekBlockForDate(selectedEditDate);
+      
+      if (!weekBlock) {
+        // No week block exists for this date - need to create one
+        const sunday = getSundayOfWeek(selectedEditDate);
+        const phaseRaw = getPhaseForDate(selectedEditDate);
+        const phase = getPhaseNameForAPI(phaseRaw);
+        
+        const newBlock: WeekBlock = {
+          id: `week-${Date.now()}`,
+          startDate: sunday,
+          endDate: getSaturdayOfWeek(sunday),
+          meals: {
+            [dayOfWeek]: [{
+              meal: editingMealType,
+              recipeId: recipe ? recipe.id : null,
+              phase: phase
+            }]
+          },
+        };
+        
+        const updatedWeekBlocks = [...(userProfile.weekBlocks || []), newBlock];
+        
+        if (onUpdateProfile) {
+          await onUpdateProfile({ weekBlocks: updatedWeekBlocks });
+        }
+      } else {
+        // Update existing week block
+        const updatedWeekBlocks = (userProfile.weekBlocks || []).map(block => {
+          if (block.id === weekBlock.id) {
+            const phaseRaw = getPhaseForDate(selectedEditDate);
+            const phase = getPhaseNameForAPI(phaseRaw);
+            
+            // Get existing meals for this day
+            const existingMeals = block.meals[dayOfWeek] || [];
+            
+            // Check if this meal type already exists
+            const mealIndex = existingMeals.findIndex(m => 
+              typeof m === 'string' ? m === editingMealType : m.meal === editingMealType
+            );
+            
+            let updatedDayMeals;
+            if (mealIndex >= 0) {
+              // Update existing meal
+              updatedDayMeals = [...existingMeals];
+              updatedDayMeals[mealIndex] = {
+                meal: editingMealType,
+                recipeId: recipe ? recipe.id : null,
+                phase: phase
+              };
+            } else {
+              // Add new meal
+              updatedDayMeals = [
+                ...existingMeals,
+                {
+                  meal: editingMealType,
+                  recipeId: recipe ? recipe.id : null,
+                  phase: phase
+                }
+              ];
+            }
+            
+            return {
+              ...block,
+              meals: {
+                ...block.meals,
+                [dayOfWeek]: updatedDayMeals
+              }
+            };
+          }
+          return block;
+        });
+        
+        if (onUpdateProfile) {
+          await onUpdateProfile({ weekBlocks: updatedWeekBlocks });
+        }
+      }
+      
+      // Close modals and reset state
+      setShowEditDayModal(false);
+      setEditingMealType(null);
+      setRecipeOptions([]);
+      setSelectedEditDate(null);
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+      alert('Failed to update recipe. Please try again.');
+    }
+  };
+
+  const handleRemoveMeal = async (mealType: string) => {
+    if (!selectedEditDate) return;
+
+    try {
+      const dayOfWeek = selectedEditDate.getDay();
+      const weekBlock = getWeekBlockForDate(selectedEditDate);
+      
+      if (!weekBlock) return;
+      
+      // Update week block by removing this meal
+      const updatedWeekBlocks = (userProfile.weekBlocks || []).map(block => {
+        if (block.id === weekBlock.id) {
+          const existingMeals = block.meals[dayOfWeek] || [];
+          const updatedDayMeals = existingMeals.filter(m => 
+            typeof m === 'string' ? m !== mealType : m.meal !== mealType
+          );
+          
+          return {
+            ...block,
+            meals: {
+              ...block.meals,
+              [dayOfWeek]: updatedDayMeals
+            }
+          };
+        }
+        return block;
+      });
+      
+      if (onUpdateProfile) {
+        await onUpdateProfile({ weekBlocks: updatedWeekBlocks });
+      }
+    } catch (error) {
+      console.error('Error removing meal:', error);
+      alert('Failed to remove meal. Please try again.');
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditDayModal(false);
+    setEditingMealType(null);
+    setRecipeOptions([]);
+    setSelectedEditDate(null);
+  };
+
   // ========== CALENDAR GENERATION ==========
 
   const getDaysInMonth = (date: Date) => {
@@ -577,9 +760,10 @@ export function CalendarPage({
     }
 
     days.push(
-      <div
+      <button
         key={day}
-        className="aspect-square rounded-lg transition-all flex flex-col overflow-hidden"
+        onClick={() => handleDayClick(day)}
+        className="aspect-square rounded-lg transition-all flex flex-col overflow-hidden hover:shadow-md cursor-pointer"
         style={{
           borderColor: isToday ? COLORS.sage : borderColor,
           borderWidth: isToday ? '2px' : borderWidth,
@@ -643,7 +827,7 @@ export function CalendarPage({
         ) : (
           <div className="flex-1" style={{ backgroundColor: bgColor }} />
         )}
-      </div>
+      </button>
     );
   }
 
@@ -1054,6 +1238,185 @@ export function CalendarPage({
                       {isSavingWeek ? 'Saving...' : 'Confirm & Save Week'}
                     </Button>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Day Modal */}
+      {showEditDayModal && selectedEditDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl" style={{ color: COLORS.sageDark }}>
+                  {selectedEditDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                </h2>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+
+              {!editingMealType ? (
+                // Step 1: Show meals for this day
+                <div>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Select a meal to add or edit:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {['breakfast', 'lunch', 'dinner'].map((mealType) => {
+                      const recipesForDay = getRecipesForDay(selectedEditDate.getDate());
+                      const mealRecipe = recipesForDay.find(m => m.meal === mealType);
+                      
+                      const mealColors = {
+                        breakfast: { bg: '#fde68a', text: '#78350f', label: 'Breakfast' },
+                        lunch: { bg: '#bfdbfe', text: '#1e3a8a', label: 'Lunch' },
+                        dinner: { bg: '#ddd6fe', text: '#5b21b6', label: 'Dinner' }
+                      };
+                      
+                      const colors = mealColors[mealType as keyof typeof mealColors];
+                      
+                      return (
+                        <div
+                          key={mealType}
+                          className="border-2 rounded-xl p-4 transition-all"
+                          style={{ borderColor: COLORS.sageBgLight }}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                                style={{ backgroundColor: colors.bg, color: colors.text }}
+                              >
+                                {colors.label.charAt(0)}
+                              </div>
+                              <h3 className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
+                                {colors.label}
+                              </h3>
+                            </div>
+                            {mealRecipe && (
+                              <button
+                                onClick={() => handleRemoveMeal(mealType)}
+                                className="p-1 hover:bg-red-50 rounded transition-colors"
+                                title="Remove meal"
+                              >
+                                <X className="h-4 w-4 text-red-400" />
+                              </button>
+                            )}
+                          </div>
+                          
+                          {mealRecipe && mealRecipe.recipe ? (
+                            <div>
+                              <p className="text-xs text-slate-600 mb-2">
+                                {mealRecipe.recipe.name}
+                              </p>
+                              <Button
+                                onClick={() => handleSelectMealToEdit(mealType)}
+                                size="sm"
+                                variant="outline"
+                                className="w-full text-xs"
+                                style={{ borderColor: COLORS.sage, color: COLORS.sageDark }}
+                              >
+                                Change Recipe
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              onClick={() => handleSelectMealToEdit(mealType)}
+                              size="sm"
+                              className="w-full text-xs text-white"
+                              style={{ background: `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)` }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Recipe
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                // Step 2: Show recipe options
+                <div>
+                  <button
+                    onClick={() => {
+                      setEditingMealType(null);
+                      setRecipeOptions([]);
+                    }}
+                    className="flex items-center gap-1 text-sm mb-4 text-slate-600 hover:text-slate-900"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Back to meals
+                  </button>
+                  
+                  <p className="text-sm text-slate-600 mb-4">
+                    Choose a recipe for {editingMealType}:
+                  </p>
+                  
+                  {isLoadingRecipes ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-slate-500">Loading recipes...</p>
+                    </div>
+                  ) : recipeOptions.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-slate-500 mb-4">
+                        No recipes found matching your preferences.
+                      </p>
+                      <Button
+                        onClick={() => handleSelectRecipe(null)}
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {recipeOptions.map((recipe) => (
+                        <button
+                          key={recipe.id}
+                          onClick={() => handleSelectRecipe(recipe)}
+                          className="w-full p-3 rounded-xl border-2 transition-all hover:shadow-sm text-left"
+                          style={{
+                            borderColor: COLORS.sageBgLight,
+                            backgroundColor: 'white'
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            {recipe.imageUrl && (
+                              <img
+                                src={recipe.imageUrl}
+                                alt={recipe.name}
+                                className="w-16 h-16 rounded-lg object-cover"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
+                                {recipe.name}
+                              </h4>
+                              {recipe.description && (
+                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                                  {recipe.description}
+                                </p>
+                              )}
+                              <div className="flex gap-2 mt-2 text-xs text-slate-400">
+                                {recipe.prepTime && <span>⏱️ {recipe.prepTime}min</span>}
+                                {recipe.calories && <span>🔥 {recipe.calories}cal</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

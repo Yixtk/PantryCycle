@@ -32,27 +32,25 @@ export default function App() {
   // DATA LOADING
   // ============================================
 
-  // Update your loadUserData function in App.tsx to load all recipes:
+  const loadUserData = async (userId: string) => {
+    try {
+      // Load user profile
+      const profile = await api.getUserProfile(userId);
+      setUserProfile(profile);
 
-const loadUserData = async (userId: string) => {
-  try {
-    // Load user profile
-    const profile = await api.getUserProfile(userId);
-    setUserProfile(profile);
+      // Load recommended recipes using new API
+      const recommended = await api.getRecommendedRecipes(userId);
+      setRecommendedRecipes(recommended);
+      setRecipes(recommended); // Also set as general recipes
 
-    // Load recommended recipes using new API
-    const recommended = await api.getRecommendedRecipes(userId);
-    setRecommendedRecipes(recommended);
-    setRecipes(recommended); // Also set as general recipes
+      // Load saved recipes (if any)
+      const saved = await api.getSavedRecipes(userId);
+      setSavedRecipes(saved);
 
-    // Load saved recipes (if any)
-    const saved = await api.getSavedRecipes(userId);
-    setSavedRecipes(saved);
-
-  } catch (error) {
-    console.error('Failed to load user data:', error);
-  }
-};
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
 
 
   // ============================================
@@ -374,8 +372,12 @@ const loadUserData = async (userId: string) => {
         />
       )}
 
-      {appState === 'grocery' && (
-        <GroceryListPage recipes={savedRecipes} onNavigate={handleNavigate} />
+      {appState === 'grocery' && userProfile && (
+        <GroceryListPage 
+          recipes={recommendedRecipes} 
+          userProfile={userProfile}
+          onNavigate={handleNavigate} 
+        />
       )}
 
       {appState === 'period' && userProfile && (

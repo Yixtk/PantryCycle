@@ -299,19 +299,23 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 
 export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
   try {
-    const response = await fetch(`/api/recommend-recipes?userId=${userId}`);
+    // Get all recipes from database (will be filtered in UI based on user preferences)
+    const response = await fetch(`/api/get-recipes?limit=1000`);
     
     if (!response.ok) {
-      throw new Error('Failed to get recommendations');
+      console.error('Failed to fetch recommended recipes from API');
+      // Fallback to mock recipes
+      const { mockRecipes } = await import('../components/RecipeData');
+      return mockRecipes;
     }
     
     const data = await response.json();
     return data.recipes || [];
   } catch (error) {
-    console.error('Get recommendations error:', error);
-    // Fallback to mock data if API fails
+    console.error('Get recommended recipes error:', error);
+    // Fallback to mock recipes
     const { mockRecipes } = await import('../components/RecipeData');
-    return mockRecipes.slice(0, 5);
+    return mockRecipes;
   }
 }
 
@@ -385,7 +389,7 @@ export async function getSavedRecipes(userId: string): Promise<Recipe[]> {
   return [];
 }
 
-export async function saveRecipe(userId: string, recipeId: number, rating?: number): Promise<SavedRecipe> {
+export async function saveRecipe(userId: string, recipeId: number | string, rating?: number): Promise<SavedRecipe> {
   // TODO: Replace with actual API call
   // const response = await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved`, {
   //   method: 'POST',
@@ -398,13 +402,13 @@ export async function saveRecipe(userId: string, recipeId: number, rating?: numb
   return {
     id: Date.now().toString(),
     userId,
-    recipeId,
+    recipeId: String(recipeId),
     savedAt: new Date(),
     rating,
   };
 }
 
-export async function unsaveRecipe(userId: string, recipeId: number): Promise<void> {
+export async function unsaveRecipe(userId: string, recipeId: string): Promise<void> {
   // TODO: Replace with actual API call
   // await fetch(`${API_BASE_URL}/users/${userId}/recipes/saved/${recipeId}`, {
   //   method: 'DELETE'

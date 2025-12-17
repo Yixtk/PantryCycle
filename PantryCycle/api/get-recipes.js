@@ -22,9 +22,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    console.log('Get recipes request:', req.query);
+  console.log('========== GET RECIPES REQUEST ==========');
+  console.log('Request query params:', req.query);
 
+  try {
     const { 
       phase,           // 'Menstrual', 'Follicular', 'Ovulation', 'Luteal'
       mealType,        // 'breakfast', 'lunch', 'dinner'
@@ -32,6 +33,8 @@ export default async function handler(req, res) {
       allergens,       // comma-separated: 'dairy,eggs'
       limit = 10       // how many recipes to return
     } = req.query;
+
+    console.log('Parsed params:', { phase, mealType, dietary, allergens, limit });
 
     // Build the WHERE clause dynamically
     let conditions = [];
@@ -60,9 +63,8 @@ export default async function handler(req, res) {
           case 'Vegetarian':
             conditions.push('is_vegetarian = TRUE');
             break;
-          case 'Vegan':
-            conditions.push('is_vegetarian = TRUE'); // Vegan recipes should be marked vegetarian
-            break;
+          // Note: No is_vegan column in database
+          // Vegan users should select Vegetarian + Dairy-Free preferences
           case 'Gluten-Free':
             conditions.push('is_gluten_free = TRUE');
             break;
@@ -126,11 +128,8 @@ export default async function handler(req, res) {
         ingredients,
         cooking_instructions,
         category,
-        nutrition_calories,
         serving_size,
         nutrition_per_serving,
-        prep_time,
-        cook_time,
         breakfast,
         lunch,
         dinner,
@@ -143,36 +142,65 @@ export default async function handler(req, res) {
     
     params.push(parseInt(limit));
 
-    console.log('Recipe query:', query);
-    console.log('Query params:', params);
+    console.log('========== FINAL SQL QUERY ==========');
+    console.log('Query:', query);
+    console.log('Params:', params);
+    console.log('=====================================');
 
     const result = await pool.query(query, params);
+    
+    console.log('Query result:', {
+      rowCount: result.rows.length,
+      firstRow: result.rows[0]
+    });
 
-    // Transform to frontend format with safe JSON parsing
-    const recipes = result.rows.map(row => {
-      // Safe JSON parse function
-      const safeJsonParse = (value, fallback = {}) => {
-        if (!value) return fallback;
-        if (typeof value === 'object') return value;
-        try {
-          return JSON.parse(value);
-        } catch (error) {
-          console.warn(`JSON parse error for recipe ${row.id}:`, error.message);
-          return fallback;
+    // Transform to frontend format
+    const recipes = result.rows.map((row, index) => {
+      console.log(`Processing recipe ${index + 1}:`, row.recipe_title);
+      
+      let ingredients = row.ingredients;
+      let instructions = row.cooking_instructions;
+      let nutritionPerServing = row.nutrition_per_serving;
+      
+      // Safely parse JSON fields
+      try {
+        if (typeof row.ingredients === 'string') {
+          ingredients = JSON.parse(row.ingredients);
         }
-      };
-
+      } catch (e) {
+        console.error('Error parsing ingredients for recipe', row.id, e);
+        ingredients = {};
+      }
+      
+      try {
+        if (typeof row.cooking_instructions === 'string') {
+          instructions = JSON.parse(row.cooking_instructions);
+        }
+      } catch (e) {
+        console.error('Error parsing instructions for recipe', row.id, e);
+        instructions = [];
+      }
+      
+      try {
+        if (typeof row.nutrition_per_serving === 'string') {
+          nutritionPerServing = JSON.parse(row.nutrition_per_serving);
+        }
+      } catch (e) {
+        console.error('Error parsing nutrition for recipe', row.id, e);
+        nutritionPerServing = {};
+      }
+      
       return {
         id: row.id,
         name: row.recipe_title,
         description: row.category || '',
-        ingredients: safeJsonParse(row.ingredients, {}),
-        instructions: safeJsonParse(row.cooking_instructions, []),
-        prepTime: row.prep_time || 0,
-        cookTime: row.cook_time || 0,
+        ingredients: ingredients,
+        instructions: instructions,
+        prepTime: 0,
+        cookTime: 0,
         servings: row.serving_size || 1,
-        calories: row.nutrition_calories || 0,
-        nutritionPerServing: safeJsonParse(row.nutrition_per_serving, {}),
+        calories: nutritionPerServing?.calories || 0,
+        nutritionPerServing: nutritionPerServing,
         imageUrl: '',
         phase: row.menstrual_phase_tag,
         mealTypes: {
@@ -183,14 +211,20 @@ export default async function handler(req, res) {
       };
     });
 
+    console.log(`Successfully transformed ${recipes.length} recipes`);
+
     return res.status(200).json({ recipes, count: recipes.length });
 
   } catch (error) {
-    console.error('Get recipes error:', error);
+    console.error('========== ERROR IN GET RECIPES ==========');
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    console.error('Error details:', error);
+    console.error('==========================================');
     return res.status(500).json({ 
       error: 'Failed to get recipes',
-      details: error.message 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
