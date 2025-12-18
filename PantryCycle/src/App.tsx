@@ -69,14 +69,15 @@ export default function App() {
 
       let additionalRecipes: Recipe[] = [];
       if (missingRecipeIds.length > 0) {
-        console.log('Fetching missing recipes:', missingRecipeIds);
-        // Fetch all recipes and filter for the ones we need
-        const allRecipes = await api.getRecipes({ limit: 1000 });
-        additionalRecipes = allRecipes.filter(r => missingRecipeIds.includes(r.id));
+        console.log('🔍 Fetching missing recipes by IDs:', missingRecipeIds);
+        // Fetch specific recipes by their IDs
+        additionalRecipes = await api.getRecipesByIds(missingRecipeIds);
+        console.log(`✅ Fetched ${additionalRecipes.length} additional recipes`);
       }
 
       // Combine recommended + additional recipes
       const allAvailableRecipes = [...uniqueRecommended, ...additionalRecipes];
+      console.log(`📦 Total recipes available: ${allAvailableRecipes.length}`);
       setRecipes(allAvailableRecipes);
 
       // Load saved recipes (if any)

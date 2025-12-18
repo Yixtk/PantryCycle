@@ -326,19 +326,26 @@ export async function getRecipes(filters: {
   dietary?: string[];       // ['Vegetarian', 'Gluten-Free']
   allergens?: string[];     // ['Dairy', 'Eggs']
   limit?: number;
+  ids?: number[];           // Fetch specific recipe IDs
 }): Promise<Recipe[]> {
   try {
     const params = new URLSearchParams();
     
-    if (filters.phase) params.append('phase', filters.phase);
-    if (filters.mealType) params.append('mealType', filters.mealType);
-    if (filters.dietary && filters.dietary.length > 0) {
-      params.append('dietary', filters.dietary.join(','));
+    if (filters.ids && filters.ids.length > 0) {
+      // If IDs are provided, fetch those specific recipes
+      params.append('ids', filters.ids.join(','));
+    } else {
+      // Otherwise use filter-based search
+      if (filters.phase) params.append('phase', filters.phase);
+      if (filters.mealType) params.append('mealType', filters.mealType);
+      if (filters.dietary && filters.dietary.length > 0) {
+        params.append('dietary', filters.dietary.join(','));
+      }
+      if (filters.allergens && filters.allergens.length > 0) {
+        params.append('allergens', filters.allergens.join(','));
+      }
+      if (filters.limit) params.append('limit', filters.limit.toString());
     }
-    if (filters.allergens && filters.allergens.length > 0) {
-      params.append('allergens', filters.allergens.join(','));
-    }
-    if (filters.limit) params.append('limit', filters.limit.toString());
 
     const response = await fetch(`/api/get-recipes?${params.toString()}`);
     
@@ -347,11 +354,20 @@ export async function getRecipes(filters: {
     }
     
     const data = await response.json();
-    return data.recipes;
+    // Handle both array response (for ID-based) and object response (for filter-based)
+    return Array.isArray(data) ? data : data.recipes;
   } catch (error) {
     console.error('Get recipes error:', error);
     throw error;
   }
+}
+
+/**
+ * Fetch specific recipes by their IDs
+ */
+export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
+  if (ids.length === 0) return [];
+  return getRecipes({ ids });
 }
 
 // Helper function to get phase for a specific date

@@ -31,10 +31,112 @@ export default async function handler(req, res) {
       mealType,        // 'breakfast', 'lunch', 'dinner'
       dietary,         // comma-separated: 'vegetarian,gluten-free'
       allergens,       // comma-separated: 'dairy,eggs'
+      ids,             // comma-separated recipe IDs: '1,2,3'
       limit = 10       // how many recipes to return
     } = req.query;
 
-    console.log('Parsed params:', { phase, mealType, dietary, allergens, limit });
+    console.log('Parsed params:', { phase, mealType, dietary, allergens, ids, limit });
+
+    // Special case: if IDs are provided, fetch those specific recipes
+    if (ids) {
+      const recipeIds = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      console.log('Fetching specific recipe IDs:', recipeIds);
+      
+      if (recipeIds.length === 0) {
+        return res.status(200).json([]);
+      }
+      
+      const placeholders = recipeIds.map((_, i) => `$${i + 1}`).join(',');
+      const query = `
+        SELECT 
+          id,
+          recipe_title,
+          ingredients,
+          cooking_instructions,
+          category,
+          serving_size,
+          nutrition_per_serving,
+          nutrition_calories,
+          prep_time,
+          cook_time,
+          breakfast,
+          lunch,
+          dinner,
+          is_vegetarian,
+          is_pescatarian,
+          is_gluten_free,
+          is_low_carb,
+          is_high_protein,
+          is_keto,
+          is_vegan,
+          no_dairy,
+          no_eggs,
+          no_peanuts,
+          no_treenuts,
+          no_wheat,
+          no_soy,
+          no_shellfish,
+          menstrual_phase_tag
+        FROM recipes_classified
+        WHERE id = ANY($1)
+      `;
+      
+      const result = await pool.query(query, [recipeIds]);
+      console.log(`Found ${result.rows.length} recipes by ID`);
+      
+      const recipes = result.rows.map(row => {
+        // Parse JSON fields safely
+        const safeJsonParse = (str, fallback = {}) => {
+          if (!str) return fallback;
+          if (typeof str === 'object') return str;
+          try {
+            return JSON.parse(str);
+          } catch (e) {
+            console.warn('JSON parse error:', e.message);
+            return fallback;
+          }
+        };
+        
+        return {
+          id: row.id,
+          name: row.recipe_title,
+          ingredients: safeJsonParse(row.ingredients, {}),
+          instructions: safeJsonParse(row.cooking_instructions, []),
+          category: row.category,
+          servings: row.serving_size,
+          nutritionPerServing: safeJsonParse(row.nutrition_per_serving, {}),
+          calories: row.nutrition_calories,
+          prepTime: row.prep_time,
+          cookTime: row.cook_time,
+          phase: row.menstrual_phase_tag,
+          mealTypes: {
+            breakfast: row.breakfast,
+            lunch: row.lunch,
+            dinner: row.dinner
+          },
+          dietary: {
+            vegetarian: row.is_vegetarian,
+            pescatarian: row.is_pescatarian,
+            glutenFree: row.is_gluten_free,
+            lowCarb: row.is_low_carb,
+            highProtein: row.is_high_protein,
+            keto: row.is_keto,
+            vegan: row.is_vegan
+          },
+          allergens: {
+            noDairy: row.no_dairy,
+            noEggs: row.no_eggs,
+            noPeanuts: row.no_peanuts,
+            noTreeNuts: row.no_treenuts,
+            noWheat: row.no_wheat,
+            noSoy: row.no_soy,
+            noShellfish: row.no_shellfish
+          }
+        };
+      });
+      
+      return res.status(200).json(recipes);
+    }
 
     // Build the WHERE clause dynamically
     let conditions = [];
