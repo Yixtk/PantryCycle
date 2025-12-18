@@ -244,17 +244,36 @@ export default function App() {
     });
 
     // Helper functions
-    const getUpcomingSunday = () => {
+    const getSmartWeekStart = (selectedMeals: { [day: number]: string[] }) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const currentDay = today.getDay();
       
-      // If today is Sunday, use today
-      // Otherwise, get NEXT Sunday
-      if (currentDay === 0) {
-        return today;
+      // Find the earliest selected day
+      const selectedDays = Object.keys(selectedMeals).map(d => parseInt(d));
+      if (selectedDays.length === 0) {
+        // No meals selected, default to next Sunday
+        const daysUntilSunday = currentDay === 0 ? 7 : 7 - currentDay;
+        const nextSunday = new Date(today);
+        nextSunday.setDate(today.getDate() + daysUntilSunday);
+        nextSunday.setHours(0, 0, 0, 0);
+        return nextSunday;
+      }
+      
+      const earliestSelectedDay = Math.min(...selectedDays);
+      
+      // If earliest selected day is after today (in the same week), use this week
+      // If earliest selected day is today or before, use next week
+      if (earliestSelectedDay > currentDay) {
+        // Use this week's Sunday
+        const daysFromSunday = currentDay;
+        const thisSunday = new Date(today);
+        thisSunday.setDate(today.getDate() - daysFromSunday);
+        thisSunday.setHours(0, 0, 0, 0);
+        return thisSunday;
       } else {
-        const daysUntilSunday = 7 - currentDay;
+        // Use next week's Sunday
+        const daysUntilSunday = currentDay === 0 ? 7 : 7 - currentDay;
         const nextSunday = new Date(today);
         nextSunday.setDate(today.getDate() + daysUntilSunday);
         nextSunday.setHours(0, 0, 0, 0);
@@ -269,8 +288,8 @@ export default function App() {
       return saturday;
     };
 
-    // Create first week block for upcoming Sunday
-    const upcomingSunday = getUpcomingSunday();
+    // Create first week block - smart week selection based on selected meals
+    const weekStartSunday = getSmartWeekStart(data.selectedMeals);
     
     // Create a temporary profile object for phase calculation
     const tempProfile: UserProfile = {
@@ -285,15 +304,17 @@ export default function App() {
     
     const firstWeekBlock = {
       id: `week-${Date.now()}`,
-      startDate: upcomingSunday,
-      endDate: getSaturday(upcomingSunday),
-      meals: convertMealsToWeekBlock(data.selectedMeals, upcomingSunday, tempProfile)
+      startDate: weekStartSunday,
+      endDate: getSaturday(weekStartSunday),
+      meals: convertMealsToWeekBlock(data.selectedMeals, weekStartSunday, tempProfile)
     };
 
     console.log('Creating week block:', {
-      start: upcomingSunday.toDateString(),
-      end: getSaturday(upcomingSunday).toDateString(),
-      mealsCount: Object.values(data.selectedMeals).flat().length
+      start: weekStartSunday.toDateString(),
+      end: getSaturday(weekStartSunday).toDateString(),
+      mealsCount: Object.values(data.selectedMeals).flat().length,
+      selectedDays: Object.keys(data.selectedMeals).map(d => parseInt(d)),
+      today: new Date().getDay()
     });
 
     // Format dates as strings to avoid timezone issues
