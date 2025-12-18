@@ -173,6 +173,9 @@ export default function App() {
       console.log('Migration complete! Week block created for', nextSunday);
     }
     
+    // Load all user data (recipes, week blocks, etc.)
+    await loadUserData(loggedInUser.id);
+    
     setAppState('calendar');
   } catch (error) {
     console.error('Login failed:', error);
