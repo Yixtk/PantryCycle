@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Plus, Check, 
 import { Recipe, UserProfile, PeriodRecord, WeekBlock } from '../types';
 import { Button } from './ui/button';
 import * as api from '../services/api';
-import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
+import { formatCalories } from '../utils/recipeImageMatcher';
 
 interface CalendarPageProps {
   recipes: Recipe[];
@@ -1369,25 +1369,18 @@ export function CalendarPage({
                             transform: isSelected ? 'scale(0.98)' : 'scale(1)'
                           }}
                         >
-                          <div className="flex items-start gap-3">
-                            <img
-                              src={getRecipeImage(recipe.name)}
-                              alt={recipe.name}
-                              className="w-16 h-16 rounded-lg object-cover"
-                            />
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
-                                {recipe.name}
-                              </h4>
-                              {recipe.description && (
-                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                                  {recipe.description}
-                                </p>
-                              )}
-                              <div className="flex gap-2 mt-2 text-xs text-slate-400">
-                                {recipe.prepTime && <span>⏱️ {recipe.prepTime}min</span>}
-                                {recipe.calories && <span>🔥 {formatCalories(recipe.calories)}cal</span>}
-                              </div>
+                          <div>
+                            <h4 className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
+                              {recipe.name}
+                            </h4>
+                            {recipe.description && (
+                              <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                                {recipe.description}
+                              </p>
+                            )}
+                            <div className="flex gap-2 mt-2 text-xs text-slate-400">
+                              {recipe.prepTime && <span>⏱️ {recipe.prepTime}min</span>}
+                              {recipe.calories && <span>🔥 {formatCalories(recipe.calories)}cal</span>}
                             </div>
                           </div>
                         </button>
