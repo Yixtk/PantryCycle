@@ -121,11 +121,14 @@ export function CalendarPage({
 
   const getWeekBlockForDate = (date: Date): WeekBlock | null => {
     if (!userProfile.weekBlocks || userProfile.weekBlocks.length === 0) {
+      console.log('⚠️ getWeekBlockForDate: No week blocks available');
       return null;
     }
 
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
+    
+    console.log(`🔍 Looking for week block containing ${checkDate.toISOString()}`);
 
     for (const block of userProfile.weekBlocks) {
       const start = block.startDate instanceof Date 
@@ -137,8 +140,11 @@ export function CalendarPage({
         ? new Date(block.endDate) 
         : new Date(block.endDate);
       end.setHours(23, 59, 59, 999);
+      
+      console.log(`  Block ${block.id}: ${start.toISOString()} to ${end.toISOString()}`);
 
       if (checkDate >= start && checkDate <= end) {
+        console.log(`  ✅ Found matching block: ${block.id}`);
         return {
           ...block,
           startDate: start,
@@ -146,7 +152,8 @@ export function CalendarPage({
         };
       }
     }
-
+    
+    console.log(`  ❌ No matching week block found`);
     return null;
   };
 
@@ -684,6 +691,9 @@ export function CalendarPage({
   };
 
   const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
+  
+  // Debug: Log the current viewing year/month
+  console.log(`📅 Calendar viewing: ${year}-${month + 1} (${currentDate.toDateString()})`);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
