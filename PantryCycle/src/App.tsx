@@ -470,7 +470,7 @@ export default function App() {
 
       {appState === 'grocery' && userProfile && (
         <GroceryListPage 
-          recipes={recommendedRecipes} 
+          recipes={recipes} 
           userProfile={userProfile}
           onNavigate={handleNavigate} 
         />
