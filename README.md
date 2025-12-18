@@ -2,6 +2,8 @@
 
 **PantryCycle** is a comprehensive machine learning platform that provides personalized recipe recommendations based on menstrual cycle phases. The system uses advanced decision tree classification to categorize recipes into four menstrual phases (Menstrual, Follicular, Ovulation, Luteal) based on nutritional features, helping users optimize their nutrition throughout their cycle.
 
+🌐 **Live Demo**: [https://pantry-cycle.vercel.app/](https://pantry-cycle.vercel.app/)
+
 ## 🌟 Overview
 
 PantryCycle combines nutritional science with machine learning to create a smart recipe classification system. By analyzing 14 nutritional features, the platform automatically categorizes recipes to match the specific nutritional needs of different menstrual cycle phases, promoting better health and well-being.
@@ -62,6 +64,10 @@ The model achieves balanced distribution across all four phases (target: 15-30% 
 | **Luteal** | ~30.6% | ~33.0% | Magnesium, Fiber |
 
 ## 🚀 Getting Started
+
+### Live Application
+
+Visit the live application at: **[https://pantry-cycle.vercel.app/](https://pantry-cycle.vercel.app/)**
 
 ### Prerequisites
 
