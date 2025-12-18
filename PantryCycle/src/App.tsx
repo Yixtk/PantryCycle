@@ -314,6 +314,12 @@ export default function App() {
     try {
       const updated = await api.updateUserProfile(user.id, updates);
       setUserProfile(updated);
+      
+      // If weekBlocks were updated, reload all recipes to ensure selected ones are available
+      if (updates.weekBlocks) {
+        console.log('Week blocks updated, reloading recipes...');
+        await loadUserData(user.id);
+      }
     } catch (error) {
       console.error('Profile update failed:', error);
       // TODO: Show error message to user
@@ -395,13 +401,17 @@ export default function App() {
               });
             }
             
-            // Only return selected recipes (empty array if none selected)
-            const filtered = recommendedRecipes.filter(r => selectedRecipeIds.has(r.id));
+            // Filter from ALL available recipes (not just recommended)
+            // This includes recommended + additional recipes loaded for meal plan
+            const filtered = recipes.filter(r => selectedRecipeIds.has(r.id));
             
             // Extra deduplication: ensure no duplicate recipes in the list
             const uniqueFiltered = Array.from(
               new Map(filtered.map(recipe => [recipe.id, recipe])).values()
             );
+            
+            console.log('Selected recipe IDs:', Array.from(selectedRecipeIds));
+            console.log('Filtered recipes:', uniqueFiltered.map(r => ({ id: r.id, name: r.name })));
             
             return uniqueFiltered;
           })()}
