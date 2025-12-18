@@ -1,0 +1,16 @@
+{
+  "buildCommand": "cd PantryCycle && npm run build",
+  "outputDirectory": "PantryCycle/dist",
+  "installCommand": "cd PantryCycle && npm install",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/PantryCycle/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+

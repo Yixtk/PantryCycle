@@ -1,0 +1,325 @@
+# Database Scripts
+
+## add_carbohydrates.sql
+
+### Purpose
+Calculates and adds carbohydrate data to the `nutrition_per_serving` JSON field in `recipes_classified` table.
+
+### Usage
+
+#### Option 1: Railway Terminal (Recommended)
+1. Log in to Railway: https://railway.app
+2. Select your PostgreSQL service
+3. Click **"Terminal"** or **"Shell"** tab at the top
+4. Connect to database:
+   ```bash
+   psql $DATABASE_URL
+   ```
+5. Copy and paste **all** contents of `add_carbohydrates.sql`
+6. Press Enter and wait 10-20 seconds
+7. Type `\q` to exit when done
+
+#### Option 2: Local Terminal with Helper Script
+```bash
+# Step 1: Get your DATABASE_URL from Railway Dashboard
+# (PostgreSQL service → Connect/Variables → copy DATABASE_URL)
+
+# Step 2: Set the environment variable
+export DATABASE_URL='postgresql://postgres:password@host:5432/railway'
+
+# Step 3: Run the script
+cd PantryCycle/database
+./run_carbs_script.sh
+```
+
+#### Option 3: Direct psql Command
+```bash
+# Replace with your actual DATABASE_URL
+psql "postgresql://postgres:password@host.railway.app:5432/railway" -f add_carbohydrates.sql
+```
+
+### Calculation Method
+
+**Formula:** `Carbs (g) = (Total Calories - Protein×4 - Fat×9) ÷ 4`
+
+**Nutritional facts:**
+- 1g Protein = 4 calories
+- 1g Carbohydrate = 4 calories  
+- 1g Fat = 9 calories
+
+**Example:**
+- Recipe has 320 calories, 18g protein, 8g fat
+- Carbs = (320 - 18×4 - 8×9) ÷ 4 = (320 - 72 - 72) ÷ 4 = **44g carbs**
+
+### Why Calculate Instead of Manual Entry?
+
+Since the database already has `calories`, `protein`, `saturated fat`, and `unsaturated fat`, we can **accurately calculate carbohydrates** using basic nutrition science. This is:
+- ✅ Faster than manual data entry
+- ✅ Consistent and reproducible
+- ✅ Based on verified calorie data
+- ✅ Automatically handles all 1000+ recipes
+
+---
+
+## add_cooking_times.sql
+
+### Purpose
+Adds estimated preparation and cooking times to the `recipes_classified` table using rule-based imputation.
+
+### Usage
+
+#### Option 1: Railway Dashboard (Recommended)
+1. Log in to Railway: https://railway.app
+2. Select your PostgreSQL database
+3. Click **"Query"** tab
+4. Copy and paste the contents of `add_cooking_times.sql`
+5. Click **"Run"** or press Ctrl/Cmd + Enter
+6. Wait for completion (may take 30-60 seconds)
+
+#### Option 2: psql Command Line
+```bash
+# Connect to your Railway database
+psql "postgresql://postgres:password@host.railway.app:5432/railway"
+
+# Run the script
+\i add_cooking_times.sql
+
+# Or pipe it directly
+psql "postgresql://..." < add_cooking_times.sql
+```
+
+---
+
+## Estimation Methodology
+
+### Prep Time Estimation
+Based on **ingredient count** and **recipe complexity**:
+
+| Ingredients | Prep Time | Reasoning |
+|------------|-----------|-----------|
+| ≤ 5        | 10 min    | Simple recipes, minimal chopping |
+| 6-10       | 15 min    | Standard complexity |
+| 11-15      | 20 min    | More ingredients to prepare |
+| > 15       | 25 min    | Complex recipes, extensive prep |
+
+**Adjustments based on recipe type:**
+
+| Recipe Type | Adjustment | Reasoning |
+|------------|------------|-----------|
+| **Salads** | Set to 10 min | Just washing and chopping vegetables |
+| **Breakfast** | Max 12 min | Quick morning prep |
+| **Soups/Stews** | +5 min | More chopping for multiple vegetables |
+| **Baked goods** | +8 min | Mixing, kneading dough/batter |
+| **Stir-fry** | 10-15 min | Pre-cut ingredients, quick prep |
+| **Meat/Protein** | +5 min | Trimming, cutting, handling raw meat |
+
+### Cook Time Estimation
+Based on **cooking method** inferred from recipe title and category:
+
+| Cooking Method | Cook Time | Examples |
+|---------------|-----------|----------|
+| No-cook / Salad | 5 min | Salads, smoothies, overnight oats |
+| Breakfast | 12 min | Eggs, toast, quick breakfast items |
+| Stir-fry / Sauté | 18 min | Quick pan-fried dishes |
+| Grilled | 18 min | Grilled chicken, vegetables |
+| Pasta / Rice | 22 min | Standard boiling/cooking time |
+| Baked / Roasted | 35 min | Oven-baked dishes |
+| Soup / Stew | 35 min | Simmered dishes |
+| Slow-cooked | 50 min | Braised, slow-cooked recipes |
+
+---
+
+## Verification
+
+After running the script, verify the results:
+
+```sql
+-- Check distribution
+SELECT 
+  prep_time, 
+  COUNT(*) as count,
+  ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM recipes_classified), 1) as percentage
+FROM recipes_classified
+GROUP BY prep_time
+ORDER BY prep_time;
+
+SELECT 
+  cook_time, 
+  COUNT(*) as count,
+  ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM recipes_classified), 1) as percentage
+FROM recipes_classified
+GROUP BY cook_time
+ORDER BY cook_time;
+
+-- Check some examples
+SELECT 
+  recipe_title,
+  prep_time,
+  cook_time,
+  (prep_time + cook_time) as total_time,
+  category
+FROM recipes_classified
+ORDER BY RANDOM()
+LIMIT 10;
+```
+
+---
+
+## Expected Results
+
+After running the script:
+- ✅ All recipes have `prep_time` between 10-30 minutes
+- ✅ All recipes have `cook_time` between 5-60 minutes
+- ✅ Distribution should be reasonable:
+  - Most recipes: 15-25 min prep, 15-35 min cook
+  - Quick recipes: 10 min prep, 5-12 min cook
+  - Complex recipes: 25+ min prep, 40+ min cook
+
+---
+
+## Limitations & Assumptions
+
+### This is an **approximation**, not exact timing:
+- ✅ Suitable for meal planning and time estimation
+- ✅ Consistent and reproducible
+- ✅ Based on typical cooking patterns
+- ❌ Not measured for each individual recipe
+- ❌ May vary based on skill level and equipment
+
+### Assumptions:
+1. **Prep time** correlates with ingredient count
+2. **Cook time** correlates with cooking method
+3. Standard home cooking equipment and medium skill level
+4. Does not account for simultaneous tasks (e.g., boiling while chopping)
+
+---
+
+## Methodology Statement (for Reports)
+
+> Preparation and cooking times were estimated using a rule-based imputation method. 
+> Prep time was calculated based on ingredient count (10-25 minutes), with adjustments 
+> for protein handling. Cook time was inferred from recipe categories and typical 
+> cooking methods (5-50 minutes). While these are approximations rather than measured 
+> values, they provide consistent and reasonable estimates suitable for meal planning 
+> and time management purposes.
+
+---
+
+## Troubleshooting
+
+### Error: `jsonb_array_length does not exist`
+**Solution:** Your ingredients might be stored as TEXT instead of JSONB. Modify the script to:
+```sql
+-- Replace jsonb_array_length with a simpler count
+UPDATE recipes_classified
+SET prep_time = 10
+WHERE array_length(regexp_split_to_array(ingredients, ','), 1) <= 5;
+```
+
+### Error: `column already exists`
+**Solution:** The script uses `ADD COLUMN IF NOT EXISTS`, so this shouldn't happen. But if it does:
+```sql
+-- Drop and recreate
+ALTER TABLE recipes_classified DROP COLUMN IF EXISTS prep_time, DROP COLUMN IF EXISTS cook_time;
+-- Then rerun the script
+```
+
+### Times seem unreasonable
+**Solution:** Adjust the rules in the SQL script based on your specific recipe collection.
+
+---
+
+## API Integration
+
+The frontend and API already expect these fields:
+
+### API Response
+```json
+{
+  "id": 1,
+  "name": "Lentil Soup",
+  "prepTime": 15,
+  "cookTime": 35,
+  ...
+}
+```
+
+### Frontend Display
+The `RecipeDetailPage` component displays:
+- **Prep:** 15m
+- **Cook:** 35m
+- **Total:** 50m (calculated)
+
+---
+
+## Carbohydrates Verification
+
+After running `add_carbohydrates.sql`, verify the results:
+
+```sql
+-- Check sample recipes
+SELECT 
+  recipe_title,
+  nutrition_per_serving->>'calories' AS calories,
+  nutrition_per_serving->>'protein' AS protein,
+  nutrition_per_serving->>'carbohydrates' AS carbs,
+  (
+    COALESCE((nutrition_per_serving->>'saturated fat')::numeric, 0) 
+    + COALESCE((nutrition_per_serving->>'unsaturated fat')::numeric, 0)
+  ) AS total_fat
+FROM recipes_classified
+WHERE nutrition_per_serving IS NOT NULL
+LIMIT 10;
+
+-- Check distribution
+SELECT 
+  CASE 
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 20 THEN 'Low Carb (<20g)'
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 40 THEN 'Medium Carb (20-40g)'
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 60 THEN 'High Carb (40-60g)'
+    ELSE 'Very High Carb (60g+)'
+  END AS carb_category,
+  COUNT(*) as recipe_count,
+  ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM recipes_classified WHERE nutrition_per_serving IS NOT NULL), 1) as percentage
+FROM recipes_classified
+WHERE nutrition_per_serving IS NOT NULL
+  AND nutrition_per_serving->>'carbohydrates' IS NOT NULL
+GROUP BY carb_category
+ORDER BY carb_category;
+```
+
+### Expected Results
+- ✅ All recipes have carbohydrates value ≥ 0
+- ✅ Most recipes: 20-60g carbs per serving
+- ✅ Low-carb recipes: <20g carbs
+- ✅ Carb-heavy recipes (pasta, rice): 60g+ carbs
+
+---
+
+## Next Steps
+
+### After running `add_cooking_times.sql`:
+1. ✅ **Deploy updated API** (already done - API reads `prep_time` and `cook_time`)
+2. ✅ **Test frontend** - Recipe detail pages will show real times
+3. ✅ **Document in report** - Use the methodology statement above
+
+### After running `add_carbohydrates.sql`:
+1. ✅ **Deploy updated API** (already done - API reads `nutritionPerServing`)
+2. ✅ **Test frontend** - Recipe cards will show carbs data
+3. ✅ **Verify calculations** - Run verification queries above
+4. 🔄 **(Optional) Manual corrections** - Adjust specific recipes if needed
+
+### Recommended Order:
+```bash
+1. Run add_cooking_times.sql first
+2. Run add_carbohydrates.sql second
+3. Verify both with sample queries
+4. Deploy to Vercel (git push)
+5. Test on production site
+```
+
+---
+
+**Last Updated:** December 2024
+**Status:** Production Ready ✅
+
