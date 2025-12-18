@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Home, User, BookOpen, Droplet, Plus, Check, 
 import { Recipe, UserProfile, PeriodRecord, WeekBlock } from '../types';
 import { Button } from './ui/button';
 import * as api from '../services/api';
+import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
 
 interface CalendarPageProps {
   recipes: Recipe[];
@@ -1152,7 +1153,7 @@ export function CalendarPage({
                                             {recipe.name}
                                           </p>
                                           <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                                            <span>🔥 {recipe.calories} cal</span>
+                                            <span>🔥 {formatCalories(recipe.calories)} cal</span>
                                             {recipe.phase && (
                                               <span className="px-2 py-0.5 rounded text-xs" style={{
                                                 backgroundColor: recipe.phase === 'Menstrual' ? COLORS.menstrual :
@@ -1369,13 +1370,11 @@ export function CalendarPage({
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            {recipe.imageUrl && (
-                              <img
-                                src={recipe.imageUrl}
-                                alt={recipe.name}
-                                className="w-16 h-16 rounded-lg object-cover"
-                              />
-                            )}
+                            <img
+                              src={getRecipeImage(recipe.name)}
+                              alt={recipe.name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
                             <div className="flex-1">
                               <h4 className="text-sm font-medium" style={{ color: COLORS.sageDark }}>
                                 {recipe.name}
@@ -1387,7 +1386,7 @@ export function CalendarPage({
                               )}
                               <div className="flex gap-2 mt-2 text-xs text-slate-400">
                                 {recipe.prepTime && <span>⏱️ {recipe.prepTime}min</span>}
-                                {recipe.calories && <span>🔥 {recipe.calories}cal</span>}
+                                {recipe.calories && <span>🔥 {formatCalories(recipe.calories)}cal</span>}
                               </div>
                             </div>
                           </div>

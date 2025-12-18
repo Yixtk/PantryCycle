@@ -2,6 +2,7 @@ import { ChevronLeft, Clock, Users, Flame, Minus, Plus, Star } from 'lucide-reac
 import { Recipe } from '../types';
 import { Button } from './ui/button';
 import { useState } from 'react';
+import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -45,7 +46,7 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
         {/* Header Image */}
         <div className="relative h-64">
           <img
-            src={recipe.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'}
+            src={getRecipeImage(recipe.name)}
             alt={recipe.name}
             className="w-full h-full object-cover"
           />
@@ -82,7 +83,7 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
                 <Flame className="h-5 w-5" style={{ color: '#8a9a84' }} />
               </div>
               <div className="text-xs text-slate-600">Calories</div>
-              <div className="text-slate-900">{recipe.calories}</div>
+              <div className="text-slate-900">{formatCalories(recipe.calories)}</div>
             </div>
             <div className="text-center">
               <div className="bg-yellow-50 rounded-xl p-3 mb-2 flex items-center justify-center">

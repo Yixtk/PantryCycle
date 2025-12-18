@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Home, User, BookOpen, Droplet, Flame, Clock } from 'lucide-react';
 import { Recipe } from '../types';
 import { Input } from './ui/input';
+import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -87,7 +88,7 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                 className="w-full bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
               >
                 <img
-                  src={recipe.imageUrl || recipe.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'}
+                  src={getRecipeImage(recipe.name)}
                   alt={recipe.name}
                   className="w-full h-48 object-cover"
                 />
@@ -111,7 +112,7 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                   <div className="flex items-center gap-4 mb-3">
                     <div className="flex items-center gap-1 text-slate-600 text-sm">
                       <Flame className="h-4 w-4" style={{ color: '#8a9a84' }} />
-                      <span>{recipe.calories} cal</span>
+                      <span>{formatCalories(recipe.calories)} cal</span>
                     </div>
                     <div className="flex items-center gap-1 text-slate-600 text-sm">
                       <Clock className="h-4 w-4" style={{ color: '#8a9a84' }} />
