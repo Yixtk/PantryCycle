@@ -1,5 +1,55 @@
 # Database Scripts
 
+## add_carbohydrates.sql
+
+### Purpose
+Calculates and adds carbohydrate data to the `nutrition_per_serving` JSON field in `recipes_classified` table.
+
+### Usage
+
+#### Option 1: Railway Dashboard (Recommended)
+1. Log in to Railway: https://railway.app
+2. Select your PostgreSQL database
+3. Click **"Query"** tab
+4. Copy and paste the contents of `add_carbohydrates.sql`
+5. Click **"Run"** or press Ctrl/Cmd + Enter
+6. Wait for completion (may take 10-20 seconds)
+
+#### Option 2: psql Command Line
+```bash
+# Connect to your Railway database
+psql "postgresql://postgres:password@host.railway.app:5432/railway"
+
+# Run the script
+\i add_carbohydrates.sql
+
+# Or pipe it directly
+psql "postgresql://..." < add_carbohydrates.sql
+```
+
+### Calculation Method
+
+**Formula:** `Carbs (g) = (Total Calories - Protein×4 - Fat×9) ÷ 4`
+
+**Nutritional facts:**
+- 1g Protein = 4 calories
+- 1g Carbohydrate = 4 calories  
+- 1g Fat = 9 calories
+
+**Example:**
+- Recipe has 320 calories, 18g protein, 8g fat
+- Carbs = (320 - 18×4 - 8×9) ÷ 4 = (320 - 72 - 72) ÷ 4 = **44g carbs**
+
+### Why Calculate Instead of Manual Entry?
+
+Since the database already has `calories`, `protein`, `saturated fat`, and `unsaturated fat`, we can **accurately calculate carbohydrates** using basic nutrition science. This is:
+- ✅ Faster than manual data entry
+- ✅ Consistent and reproducible
+- ✅ Based on verified calorie data
+- ✅ Automatically handles all 1000+ recipes
+
+---
+
 ## add_cooking_times.sql
 
 ### Purpose
@@ -191,14 +241,71 @@ The `RecipeDetailPage` component displays:
 
 ---
 
+## Carbohydrates Verification
+
+After running `add_carbohydrates.sql`, verify the results:
+
+```sql
+-- Check sample recipes
+SELECT 
+  recipe_title,
+  nutrition_per_serving->>'calories' AS calories,
+  nutrition_per_serving->>'protein' AS protein,
+  nutrition_per_serving->>'carbohydrates' AS carbs,
+  (
+    COALESCE((nutrition_per_serving->>'saturated fat')::numeric, 0) 
+    + COALESCE((nutrition_per_serving->>'unsaturated fat')::numeric, 0)
+  ) AS total_fat
+FROM recipes_classified
+WHERE nutrition_per_serving IS NOT NULL
+LIMIT 10;
+
+-- Check distribution
+SELECT 
+  CASE 
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 20 THEN 'Low Carb (<20g)'
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 40 THEN 'Medium Carb (20-40g)'
+    WHEN (nutrition_per_serving->>'carbohydrates')::numeric < 60 THEN 'High Carb (40-60g)'
+    ELSE 'Very High Carb (60g+)'
+  END AS carb_category,
+  COUNT(*) as recipe_count,
+  ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM recipes_classified WHERE nutrition_per_serving IS NOT NULL), 1) as percentage
+FROM recipes_classified
+WHERE nutrition_per_serving IS NOT NULL
+  AND nutrition_per_serving->>'carbohydrates' IS NOT NULL
+GROUP BY carb_category
+ORDER BY carb_category;
+```
+
+### Expected Results
+- ✅ All recipes have carbohydrates value ≥ 0
+- ✅ Most recipes: 20-60g carbs per serving
+- ✅ Low-carb recipes: <20g carbs
+- ✅ Carb-heavy recipes (pasta, rice): 60g+ carbs
+
+---
+
 ## Next Steps
 
-After running this script:
-
+### After running `add_cooking_times.sql`:
 1. ✅ **Deploy updated API** (already done - API reads `prep_time` and `cook_time`)
 2. ✅ **Test frontend** - Recipe detail pages will show real times
 3. ✅ **Document in report** - Use the methodology statement above
-4. 🔄 **(Optional) Refine** - Adjust rules if needed based on your recipes
+
+### After running `add_carbohydrates.sql`:
+1. ✅ **Deploy updated API** (already done - API reads `nutritionPerServing`)
+2. ✅ **Test frontend** - Recipe cards will show carbs data
+3. ✅ **Verify calculations** - Run verification queries above
+4. 🔄 **(Optional) Manual corrections** - Adjust specific recipes if needed
+
+### Recommended Order:
+```bash
+1. Run add_cooking_times.sql first
+2. Run add_carbohydrates.sql second
+3. Verify both with sample queries
+4. Deploy to Vercel (git push)
+5. Test on production site
+```
 
 ---
 
