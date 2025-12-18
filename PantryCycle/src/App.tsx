@@ -312,13 +312,17 @@ export default function App() {
     if (!user || !userProfile) return;
 
     try {
-      const updated = await api.updateUserProfile(user.id, updates);
-      setUserProfile(updated);
+      console.log('Updating profile with:', updates);
+      await api.updateUserProfile(user.id, updates);
       
-      // If weekBlocks were updated, reload all recipes to ensure selected ones are available
+      // If weekBlocks were updated, reload all data to ensure consistency
       if (updates.weekBlocks) {
-        console.log('Week blocks updated, reloading recipes...');
+        console.log('Week blocks updated, reloading all user data...');
         await loadUserData(user.id);
+      } else {
+        // For other updates, just refresh the profile
+        const refreshedProfile = await api.getUserProfile(user.id);
+        setUserProfile(refreshedProfile);
       }
     } catch (error) {
       console.error('Profile update failed:', error);
