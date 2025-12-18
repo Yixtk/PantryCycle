@@ -34,50 +34,68 @@ export default function App() {
 
   const loadUserData = async (userId: string) => {
     try {
+      console.log('🚀 loadUserData START for userId:', userId);
+      
       // Load user profile
       const profile = await api.getUserProfile(userId);
+      console.log('👤 Profile loaded:', {
+        username: profile.username,
+        weekBlocksCount: profile.weekBlocks?.length || 0,
+        weekBlocks: profile.weekBlocks
+      });
       setUserProfile(profile);
 
       // Load recommended recipes using new API
       const recommended = await api.getRecommendedRecipes(userId);
+      console.log(`📋 Recommended recipes loaded: ${recommended.length}`);
       
       // Remove duplicates based on recipe id
       const uniqueRecommended = Array.from(
         new Map(recommended.map(recipe => [recipe.id, recipe])).values()
       );
+      console.log(`✅ Unique recommended recipes: ${uniqueRecommended.length}`);
       
       setRecommendedRecipes(uniqueRecommended);
 
       // Load all recipes that are in the user's meal plan
       const selectedRecipeIds = new Set<number>();
       if (profile.weekBlocks) {
-        profile.weekBlocks.forEach(block => {
-          Object.values(block.meals).forEach(dayMeals => {
+        profile.weekBlocks.forEach((block, blockIndex) => {
+          console.log(`📅 Block ${blockIndex}: ${block.id}, meals:`, block.meals);
+          Object.entries(block.meals).forEach(([day, dayMeals]) => {
             dayMeals.forEach(meal => {
               if (typeof meal !== 'string' && meal.recipeId) {
                 selectedRecipeIds.add(meal.recipeId);
+                console.log(`  → Day ${day}: Added recipeId ${meal.recipeId} (${meal.meal})`);
               }
             });
           });
         });
       }
+      console.log(`🎯 Total selected recipe IDs from weekBlocks:`, Array.from(selectedRecipeIds));
 
       // Fetch any recipes that are in meal plan but not in recommendations
       const missingRecipeIds = Array.from(selectedRecipeIds).filter(
         id => !uniqueRecommended.find(r => r.id === id)
       );
+      console.log(`🔍 Missing recipe IDs (not in recommendations):`, missingRecipeIds);
 
       let additionalRecipes: Recipe[] = [];
       if (missingRecipeIds.length > 0) {
         console.log('🔍 Fetching missing recipes by IDs:', missingRecipeIds);
         // Fetch specific recipes by their IDs
         additionalRecipes = await api.getRecipesByIds(missingRecipeIds);
-        console.log(`✅ Fetched ${additionalRecipes.length} additional recipes`);
+        console.log(`✅ Fetched ${additionalRecipes.length} additional recipes:`, additionalRecipes.map(r => ({ id: r.id, name: r.name })));
+      } else {
+        console.log('ℹ️ No missing recipes to fetch');
       }
 
       // Combine recommended + additional recipes
       const allAvailableRecipes = [...uniqueRecommended, ...additionalRecipes];
       console.log(`📦 Total recipes available: ${allAvailableRecipes.length}`);
+      console.log(`   - Recommended: ${uniqueRecommended.length}`);
+      console.log(`   - Additional: ${additionalRecipes.length}`);
+      console.log(`   - Recipe IDs:`, allAvailableRecipes.map(r => r.id));
       setRecipes(allAvailableRecipes);
 
       // Load saved recipes (if any)
