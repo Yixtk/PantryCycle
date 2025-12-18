@@ -130,11 +130,14 @@ export default async function handler(req, res) {
         cooking_instructions,
         category,
         serving_size,
+        nutrition_calories,
         nutrition_per_serving,
         breakfast,
         lunch,
         dinner,
-        menstrual_phase_tag
+        menstrual_phase_tag,
+        prep_time,
+        cook_time
       FROM recipes_classified
       ${whereClause}
       ORDER BY RANDOM()
@@ -197,10 +200,10 @@ export default async function handler(req, res) {
         description: row.category || '',
         ingredients: ingredients,
         instructions: instructions,
-        prepTime: 0,
-        cookTime: 0,
+        prepTime: row.prep_time || 0,
+        cookTime: row.cook_time || 0,
         servings: row.serving_size || 1,
-        calories: nutritionPerServing?.calories || 0,
+        calories: row.nutrition_calories || nutritionPerServing?.calories || 0,
         nutritionPerServing: nutritionPerServing,
         imageUrl: '',
         phase: row.menstrual_phase_tag,

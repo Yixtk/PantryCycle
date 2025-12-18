@@ -26,7 +26,20 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
 
   // Helper to get nutrition data (supports both formats)
   const getNutrition = (recipe: Recipe) => {
-    return recipe.nutritionPerServing || recipe.nutrition || { protein: 0, carbs: 0, fat: 0 };
+    const nutrition = recipe.nutritionPerServing || recipe.nutrition || {};
+    
+    // Calculate total fat from saturated + unsaturated fat
+    const saturatedFat = nutrition['saturated fat'] || 0;
+    const unsaturatedFat = nutrition['unsaturated fat'] || 0;
+    const totalFat = saturatedFat + unsaturatedFat;
+    
+    return {
+      protein: nutrition.protein || 0,
+      carbs: nutrition.carbs || nutrition.carbohydrates || 0,
+      fat: nutrition.fat || totalFat || 0,
+      fiber: nutrition.fiber || 0,
+      calories: nutrition.calories || 0
+    };
   };
 
   return (
