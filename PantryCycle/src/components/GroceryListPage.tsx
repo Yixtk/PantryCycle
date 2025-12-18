@@ -25,21 +25,37 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
     const ingredientsMap: { [key: string]: { quantity: string; count: number } } = {};
     let itemId = 1;
 
-    // Get date range for next 7 days
+    // Get date range for next 7 days (inclusive of today)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
     nextWeek.setHours(23, 59, 59, 999);
 
+    console.log('🛒 Grocery List - Date Range:', {
+      today: today.toISOString(),
+      nextWeek: nextWeek.toISOString(),
+      weekBlocksCount: userProfile.weekBlocks?.length || 0
+    });
+
     // Extract all recipe IDs from week blocks (only within next 7 days)
     if (userProfile.weekBlocks && userProfile.weekBlocks.length > 0) {
       userProfile.weekBlocks.forEach(weekBlock => {
         const blockStart = new Date(weekBlock.startDate);
         const blockEnd = new Date(weekBlock.endDate);
+        blockStart.setHours(0, 0, 0, 0);
+        blockEnd.setHours(23, 59, 59, 999);
+        
+        console.log('🛒 Processing week block:', {
+          blockId: weekBlock.id,
+          blockStart: blockStart.toISOString(),
+          blockEnd: blockEnd.toISOString(),
+          mealsCount: Object.keys(weekBlock.meals).length
+        });
         
         // Skip blocks that are entirely outside the next 7 days
-        if (blockEnd < today || blockStart > nextWeek) {
+        if (blockEnd.getTime() < today.getTime() || blockStart.getTime() > nextWeek.getTime()) {
+          console.log('  ⏭️ Skipping block - outside date range');
           return;
         }
         
@@ -48,9 +64,16 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
           // Calculate the actual date for this day
           const mealDate = new Date(blockStart);
           mealDate.setDate(blockStart.getDate() + parseInt(dayOfWeek));
+          mealDate.setHours(0, 0, 0, 0);
           
-          // Only include meals within the next 7 days
-          if (mealDate < today || mealDate > nextWeek) {
+          console.log(`  📅 Day ${dayOfWeek} (${mealDate.toDateString()}):`, {
+            mealsCount: dayMeals.length,
+            inRange: mealDate.getTime() >= today.getTime() && mealDate.getTime() <= nextWeek.getTime()
+          });
+          
+          // Only include meals within the next 7 days (inclusive)
+          if (mealDate.getTime() < today.getTime() || mealDate.getTime() > nextWeek.getTime()) {
+            console.log('    ⏭️ Skipping - outside range');
             return; // Skip this day's meals
           }
           
@@ -58,6 +81,12 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
             if (typeof mealAssignment !== 'string' && mealAssignment.recipeId) {
               // Find the recipe
               const recipe = recipes.find(r => r.id === mealAssignment.recipeId);
+              
+              console.log(`    🍳 ${mealAssignment.meal}:`, {
+                recipeId: mealAssignment.recipeId,
+                recipeFound: !!recipe,
+                recipeName: recipe?.recipe_title
+              });
               
               if (recipe && recipe.ingredients) {
                 // Parse ingredients (can be object or array)
