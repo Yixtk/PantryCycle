@@ -1,87 +1,93 @@
-# Menstrual Phase Recipe Classification with Decision Tree
+# PantryCycle
 
-A machine learning project that classifies recipes into four menstrual cycle phases (Menstrual, Follicular, Ovulation, Luteal) based on nutritional features using a Decision Tree Classifier.
+**PantryCycle** is a comprehensive machine learning platform that provides personalized recipe recommendations based on menstrual cycle phases. The system uses advanced decision tree classification to categorize recipes into four menstrual phases (Menstrual, Follicular, Ovulation, Luteal) based on nutritional features, helping users optimize their nutrition throughout their cycle.
 
-## 📋 Overview
+## 🌟 Overview
 
-This project uses a nutrient-based classification system to categorize recipes according to their nutritional content, optimized for different phases of the menstrual cycle. The model achieves **85.43% accuracy** on the test set with a balanced distribution across all four phases.
+PantryCycle combines nutritional science with machine learning to create a smart recipe classification system. By analyzing 14 nutritional features, the platform automatically categorizes recipes to match the specific nutritional needs of different menstrual cycle phases, promoting better health and well-being.
 
 ## 🎯 Key Features
 
-- **Multi-class Classification**: Categorizes recipes into 4 menstrual phases
-- **Balanced Distribution**: Each phase accounts for 15-30% of the dataset
-- **14 Nutritional Features**: Uses comprehensive nutrient data for classification
-- **High Accuracy**: 85.43% test accuracy with Decision Tree (max_depth=4)
-- **Complete Dataset**: 2,030 recipes classified and ready for use (after deduplication)
+- **Intelligent Recipe Classification**: Automatically categorizes recipes into 4 menstrual phases using Decision Tree ML model
+- **High Accuracy**: 92.86% test accuracy with balanced distribution across all phases
+- **Comprehensive Dataset**: 2,030+ recipes with complete nutritional information
+- **Scientific Approach**: Based on evidence-based nutritional requirements for each cycle phase
+- **Preference & Allergy Detection**: Automatically identifies dietary preferences and allergies
+- **Meal Time Classification**: Categorizes recipes as breakfast, lunch, or dinner
+- **Database Integration**: PostgreSQL database support for scalable deployment
 
-## 📊 Model Performance
+## 📊 Project Structure
 
-### Training Dataset
-- **Total Dataset**: 2,030 recipes (after removing duplicates from Health_3000recipes.xlsx)
-  - Health.xlsx: 55 recipes
-  - test100recipes.xlsx: 100 recipes
-  - Health_3000recipes.xlsx: 1,875 unique recipes (deduplicated from 3,000)
-- **Training Set**: 1,624 recipes (80% of total)
-- **Test Set**: 406 recipes (20% of total)
+```
+PantryCycle/
+├── decision-tree-model/          # Decision Tree ML Model Branch
+│   ├── README.md                # Model documentation
+│   ├── train_with_balanced_rules.py  # Training script
+│   ├── CLASSIFICATION_LOGIC_README.md  # Detailed classification logic
+│   ├── All_Recipes_Classified.xlsx    # Classified dataset
+│   └── visualizations/          # Model performance visualizations
+│
+├── data/                        # Recipe datasets
+│   ├── Health.xlsx              # 55 recipes
+│   ├── test100recipes.xlsx      # 100 recipes
+│   └── Health_3000recipes.xlsx  # 3,000 recipes (1,875 unique)
+│
+└── database/                    # Database scripts
+    ├── upload_to_railway.py     # Database upload utility
+    ├── check_database_simple.py # Database inspection
+    └── reorder_id_column.py     # Schema management
+```
 
-### Accuracy Metrics
-- **Training Set Accuracy**: **93.60%**
-- **Test Set Accuracy**: **92.86%**
+## 🔬 Model Performance
 
-### Phase Distribution (Training Set - 1,624 recipes)
-- Distribution across four phases is balanced within the target range of 15-30%
+### Decision Tree Classifier
 
-### Test Set Performance (406 recipes)
-| Phase | Count | Precision | Recall | F1-Score |
-|-------|-------|-----------|--------|----------|
-| Menstrual | 87 (21.43%) | 1.00 | 1.00 | 1.00 |
-| Follicular | 95 (23.40%) | 0.82 | 0.99 | 0.90 |
-| Ovulation | 90 (22.17%) | 0.95 | 0.82 | 0.88 |
-| Luteal | 134 (33.00%) | 0.96 | 0.91 | 0.93 |
-| **Overall** | **406** | **0.93** | **0.93** | **0.93** |
-
-## 🔬 Model Specifications
-
-- **Algorithm**: Decision Tree Classifier
+- **Algorithm**: Decision Tree Classifier (scikit-learn)
 - **Max Depth**: 5
 - **Criterion**: Gini Impurity
-- **Splitting Method**: Information Gain
-- **Random State**: 42 (for reproducibility)
+- **Training Set**: 1,624 recipes (80%)
+- **Test Set**: 406 recipes (20%)
+- **Training Accuracy**: 93.60%
+- **Test Accuracy**: 92.86%
 
-### 14 Nutritional Features
-- Calories, Protein, Unsaturated Fat, Trans Fat, Saturated Fat
-- Omega 3, Fiber, Vitamin C, Iron, Magnesium
-- Iodine, Zinc, Vitamin K, Calcium
+### Phase Distribution
 
-## 📁 Data Sources
+The model achieves balanced distribution across all four phases (target: 15-30% per phase):
 
-### Dataset Composition
-| Source | Total | Origin |
-|--------|-------|--------|
-| Health.xlsx | 55 | ChatGPT-generated |
-| test100recipes.xlsx | 100 | The Meal DB Free API |
-| Health_3000recipes.xlsx | 1,875 (unique, deduplicated from 3,000) | ChatGPT-generated |
+| Phase | Training Set | Test Set | Key Nutrients |
+|-------|-------------|---------|---------------|
+| **Menstrual** | ~22.8% | ~21.4% | Iron, Vitamin C |
+| **Follicular** | ~27.0% | ~23.4% | Iron, Vitamin C, Zinc |
+| **Ovulation** | ~19.6% | ~22.2% | Zinc, Vitamin C |
+| **Luteal** | ~30.6% | ~33.0% | Magnesium, Fiber |
 
-**Total**: 2,030 recipes → **80% training (1,624) / 20% testing (406)**
+## 🚀 Getting Started
 
-### Data Processing Pipeline
+### Prerequisites
 
-1. **Data Collection**
-   - ChatGPT: Generated 3,055 recipes (55 + 3,000)
-   - The Meal DB API: Downloaded 555 recipes (free tier)
+- Python 3.7+
+- Required packages:
+  ```bash
+  pip install pandas scikit-learn matplotlib seaborn numpy openpyxl sqlalchemy psycopg2-binary
+  ```
 
-2. **Data Cleaning & Preprocessing**
-   - Unit conversion: Standardized measurement units
-   - Weight calculation: Calculated ingredient weights
-   - Serving size calculation: Determined per-serving portions
-   - Nutrition calculation: Used USDA Food Central database
+### Installation
 
-3. **Quality Refinement**
-   - Base nutrients (fat, protein, calories): Accurate
-   - Advanced nutrients (sodium, cholesterol): Refined via Claude API
-   - API limitation: Claude API free tier processed 100 recipes → final test100recipes.xlsx
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Yixtk/PantryCycle.git
+   cd PantryCycle
+   ```
 
-## 🚀 Usage
+2. **Checkout the decision tree model branch**
+   ```bash
+   git checkout decision-tree-model
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ### Training the Model
 
@@ -89,106 +95,89 @@ This project uses a nutrient-based classification system to categorize recipes a
 python train_with_balanced_rules.py
 ```
 
-This script will:
-- Load recipes from `Health.xlsx`, `test100recipes.xlsx`, and `Health_3000recipes.xlsx`
-- Apply balanced classification rules to label all recipes
-- Split data into training (685) and test (2,470) sets
-- Train Decision Tree Classifier with max_depth=4
-- Generate confusion matrices and decision tree visualization
-- Display accuracy metrics and classification reports
+This will:
+- Load and preprocess recipe data
+- Apply balanced classification rules
+- Train the Decision Tree model
+- Generate performance metrics and visualizations
+- Save confusion matrices and decision tree visualization
 
-### Output Files
+### Using the Classified Dataset
 
-- `confusion_matrix_training_balanced.png` - Training set confusion matrix
-- `confusion_matrix_test_balanced.png` - Test set confusion matrix
-- `decision_tree_visualization_balanced.png` - Decision tree structure
-- `menstrual_cycle_distribution_pie_chart.png` - Phase distribution visualization
-
-### Using Classified Data
-
-The final classified dataset is available in:
-- **`All_Recipes_Classified.xlsx`**: Contains all classified recipes with menstrual phase tags, preferences, allergies, and meal time classifications
-
-## 📂 Project Structure
-
-```
-.
-├── README.md                          # This file
-├── CLASSIFICATION_LOGIC_README.md     # Detailed classification logic
-├── train_with_balanced_rules.py       # Main training script
-├── All_Recipes_Classified.xlsx        # Final classified dataset (3,155 recipes)
-├── upload_to_railway.py               # Database upload script
-├── check_database_simple.py           # Database inspection script
-├── reorder_id_column.py               # Database schema management
-│
-├── Data Files
-│   ├── Health.xlsx                    # 55 recipes (training)
-│   ├── test100recipes.xlsx             # 100 recipes (30 training, 70 test)
-│   └── Health_3000recipes.xlsx        # 3,000 recipes (600 training, 2,400 test)
-│
-└── Visualizations
-    ├── confusion_matrix_training_balanced.png
-    ├── confusion_matrix_test_balanced.png
-    ├── decision_tree_visualization_balanced.png
-    └── menstrual_cycle_distribution_pie_chart.png
-```
-
-## 🔍 Classification Rules Overview
-
-The classification follows a priority-based approach:
-
-### 1. Menstrual Phase (Highest Priority)
-- **Condition**: `Iron ≥ 4 mg` AND `Vitamin C ≥ 25 mg`
-- **Rationale**: High iron requirement due to blood loss; Vitamin C enhances iron absorption
-
-### 2. Ovulation Phase (Second Priority)
-- **Condition**: `Zinc ≥ 1.5 mg` AND `Vitamin C ≥ 20 mg` AND `Magnesium < 80 mg`
-- **Rationale**: Zinc crucial for egg maturation; lower magnesium distinguishes from Luteal
-
-### 3. Follicular Phase (Third Priority)
-- **Condition**: `Iron 1.5–3.5 mg` AND `Vitamin C ≥ 15 mg` AND `Zinc ≥ 1.0 mg` AND NOT Menstrual
-- **Rationale**: Balanced nutrition for follicle development
-
-### 4. Luteal Phase (Fourth Priority)
-- **Condition**: (`Magnesium ≥ 100 mg` OR `Fiber ≥ 9 g`) AND NOT Menstrual AND NOT Ovulation
-- **Rationale**: High magnesium alleviates PMS symptoms; fiber stabilizes blood sugar
-
-For detailed classification logic, see [`CLASSIFICATION_LOGIC_README.md`](CLASSIFICATION_LOGIC_README.md).
-
-## 🛠️ Technology Stack
-
-- **Python 3.x**
-- **scikit-learn**: Decision Tree Classifier
-- **pandas**: Data manipulation
-- **matplotlib/seaborn**: Visualization
-- **PostgreSQL**: Database storage (Railway)
-- **SQLAlchemy**: Database ORM
-
-## 📈 Results Visualization
-
-The project includes several visualizations:
-- Confusion matrices for training and test sets
-- Decision tree structure visualization
-- Menstrual cycle phase distribution pie chart
-
-## 📝 Additional Features
-
-The classified dataset includes:
+The classified dataset (`All_Recipes_Classified.xlsx`) contains:
 - **Menstrual Phase Tags**: Menstrual, Follicular, Ovulation, Luteal
 - **Preference Flags**: Vegetarian, vegan, low carb, keto
 - **Allergy Flags**: No dairy, no tree nuts, no peanuts, no gluten
-- **Meal Time Classification**: Breakfast, lunch, dinner (based on calorie content and ingredients)
-
-## 🔗 Database Integration
-
-The classified recipes are stored in a PostgreSQL database on Railway:
-- **Table**: `recipes_classified`
-- **Total Records**: Classified recipes from the dataset
-- **Connection**: See `upload_to_railway.py` for database connection details
+- **Meal Time**: Breakfast, lunch, dinner
+- **Complete Nutrition Data**: 14 nutritional features per recipe
 
 ## 📚 Documentation
 
-- **`CLASSIFICATION_LOGIC_README.md`**: Comprehensive documentation of classification rules, model performance, data formats, and implementation details
+- **[Model README](README.md)**: Detailed model documentation, performance metrics, and usage
+- **[Classification Logic](CLASSIFICATION_LOGIC_README.md)**: Comprehensive explanation of classification rules, scientific basis, and implementation details
+
+## 🗄️ Database Integration
+
+The project includes PostgreSQL database integration for production deployment:
+
+- **Table**: `recipes_classified`
+- **Connection**: Railway PostgreSQL
+- **Scripts**: 
+  - `upload_to_railway.py`: Upload classified recipes to database
+  - `check_database_simple.py`: Inspect database content
+  - `reorder_id_column.py`: Manage database schema
+
+## 📈 Data Sources
+
+### Recipe Datasets
+
+| Source | Count | Origin | Processing |
+|--------|-------|--------|------------|
+| Health.xlsx | 55 | ChatGPT-generated | Direct use |
+| test100recipes.xlsx | 100 | The Meal DB Free API | Unit conversion, USDA nutrition calculation, Claude API refinement |
+| Health_3000recipes.xlsx | 1,875 (unique) | ChatGPT-generated | Deduplication, unit conversion, USDA nutrition calculation |
+
+### Data Processing Pipeline
+
+1. **Collection**: Recipes from ChatGPT and The Meal DB API
+2. **Cleaning**: Unit conversion, weight calculation, serving size determination
+3. **Nutrition Calculation**: USDA Food Central database integration
+4. **Quality Refinement**: Claude API for advanced nutrient refinement (sodium, cholesterol)
+5. **Deduplication**: Removed duplicates from Health_3000recipes.xlsx
+
+## 🔍 Classification Logic
+
+The classification system uses a priority-based approach with nutrient thresholds:
+
+### Primary Rules
+
+1. **Menstrual Phase**: `Iron ≥ 4 mg` AND `Vitamin C ≥ 25 mg`
+2. **Ovulation Phase**: `Zinc ≥ 1.5 mg` AND `Vitamin C ≥ 20 mg` AND `Magnesium < 80 mg`
+3. **Follicular Phase**: `Iron 1.5–3.5 mg` AND `Vitamin C ≥ 15 mg` AND `Zinc ≥ 1.0 mg`
+4. **Luteal Phase**: `Magnesium ≥ 100 mg` OR `Fiber ≥ 9 g`
+
+See [CLASSIFICATION_LOGIC_README.md](CLASSIFICATION_LOGIC_README.md) for detailed rules and scientific rationale.
+
+## 🛠️ Technology Stack
+
+- **Machine Learning**: scikit-learn (Decision Tree Classifier)
+- **Data Processing**: pandas, numpy
+- **Visualization**: matplotlib, seaborn
+- **Database**: PostgreSQL (Railway)
+- **ORM**: SQLAlchemy
+- **Data Format**: Excel (.xlsx), JSON
+
+## 📊 Visualizations
+
+The project includes comprehensive visualizations:
+
+- **Confusion Matrices**: Training and test set performance
+- **Decision Tree Visualization**: Model structure and decision paths
+- **Phase Distribution**: Pie chart showing balanced distribution across phases
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
@@ -199,6 +188,11 @@ This project is for educational/research purposes.
 - **USDA Food Central**: Nutrition database
 - **The Meal DB**: Recipe API
 - **ChatGPT & Claude API**: Data generation and refinement
+- **scikit-learn**: Machine learning framework
+
+## 📞 Contact
+
+For questions or suggestions, please open an issue on GitHub.
 
 ---
 
