@@ -46,6 +46,19 @@ export function CalendarPage({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pastPeriods, setPastPeriods] = useState<PeriodRecord[]>([]);
   
+  // Debug: Log userProfile when it changes
+  useEffect(() => {
+    console.log('📊 CalendarPage received userProfile:', {
+      hasProfile: !!userProfile,
+      weekBlocksCount: userProfile.weekBlocks?.length || 0,
+      weekBlocks: userProfile.weekBlocks
+    });
+    console.log('📊 CalendarPage received recipes:', {
+      recipesCount: recipes.length,
+      recipeIds: recipes.map(r => r.id)
+    });
+  }, [userProfile, recipes]);
+  
   // Add Week Modal state
   const [showAddWeekModal, setShowAddWeekModal] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
@@ -693,10 +706,17 @@ export function CalendarPage({
     const weekBlock = getWeekBlockForDate(checkDate);
     
     if (!weekBlock) {
+      console.log(`📅 Day ${day}: No week block found for ${checkDate.toDateString()}`);
       return []; // No week block = no meals
     }
     
     const mealsForDay = weekBlock.meals[dayOfWeek] || [];
+    
+    console.log(`📅 Day ${day} (${checkDate.toDateString()}, dayOfWeek=${dayOfWeek}):`, {
+      weekBlockId: weekBlock.id,
+      mealsCount: mealsForDay.length,
+      meals: mealsForDay
+    });
     
     if (mealsForDay.length === 0) {
       return [];

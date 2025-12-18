@@ -1,131 +1,179 @@
 /**
- * Match recipe name to appropriate image based on keywords
+ * Match recipe name to appropriate gradient background based on keywords
+ * Returns CSS gradient string for use in style={{background: ...}}
  */
 
-// Simple placeholder images using placeholder services
-const RECIPE_IMAGES = {
+// Color gradients for different recipe categories
+const RECIPE_GRADIENTS: Record<string, string> = {
   // Pasta & Noodles
-  pasta: 'https://via.placeholder.com/800x600/FFE5B4/8B4513?text=Pasta',
-  noodles: 'https://via.placeholder.com/800x600/FFE5B4/8B4513?text=Noodles',
-  spaghetti: 'https://via.placeholder.com/800x600/FFE5B4/8B4513?text=Spaghetti',
+  pasta: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
+  noodles: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
+  spaghetti: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
   
   // Salads
-  salad: 'https://via.placeholder.com/800x600/90EE90/228B22?text=Salad',
+  salad: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
   
   // Rice dishes
-  rice: 'https://via.placeholder.com/800x600/FFFAF0/CD853F?text=Rice',
-  risotto: 'https://via.placeholder.com/800x600/FFFAF0/CD853F?text=Risotto',
+  rice: 'linear-gradient(135deg, #FFFAF0 0%, #F5DEB3 100%)',
+  risotto: 'linear-gradient(135deg, #FFFAF0 0%, #F5DEB3 100%)',
   
   // Soups & Stews
-  soup: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Soup',
-  stew: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Stew',
-  broth: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Broth',
+  soup: 'linear-gradient(135deg, #FFE4B5 0%, #DEB887 100%)',
+  stew: 'linear-gradient(135deg, #FFE4B5 0%, #CD853F 100%)',
+  broth: 'linear-gradient(135deg, #FFE4B5 0%, #DEB887 100%)',
   
   // Breakfast
-  oatmeal: 'https://via.placeholder.com/800x600/F5DEB3/8B7355?text=Oatmeal',
-  oats: 'https://via.placeholder.com/800x600/F5DEB3/8B7355?text=Oats',
-  pancake: 'https://via.placeholder.com/800x600/FFE4C4/DEB887?text=Pancake',
-  waffle: 'https://via.placeholder.com/800x600/FFE4C4/DEB887?text=Waffle',
-  toast: 'https://via.placeholder.com/800x600/FFE4C4/DEB887?text=Toast',
-  egg: 'https://via.placeholder.com/800x600/FFF8DC/DAA520?text=Egg',
-  omelette: 'https://via.placeholder.com/800x600/FFF8DC/DAA520?text=Omelette',
+  oatmeal: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
+  oats: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
+  pancake: 'linear-gradient(135deg, #FFE4C4 0%, #FFDAB9 100%)',
+  waffle: 'linear-gradient(135deg, #FFE4C4 0%, #FFDAB9 100%)',
+  toast: 'linear-gradient(135deg, #FFE4C4 0%, #DEB887 100%)',
+  egg: 'linear-gradient(135deg, #FFF8DC 0%, #FFE4B5 100%)',
+  omelette: 'linear-gradient(135deg, #FFF8DC 0%, #FFE4B5 100%)',
   
   // Bowls
-  bowl: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Bowl',
-  poke: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Poke+Bowl',
+  bowl: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
+  poke: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
   
   // Protein dishes
-  chicken: 'https://via.placeholder.com/800x600/FFE4B5/CD853F?text=Chicken',
-  salmon: 'https://via.placeholder.com/800x600/FFA07A/DC143C?text=Salmon',
-  fish: 'https://via.placeholder.com/800x600/B0E0E6/4682B4?text=Fish',
-  beef: 'https://via.placeholder.com/800x600/F4A460/8B4513?text=Beef',
-  steak: 'https://via.placeholder.com/800x600/F4A460/8B4513?text=Steak',
-  tofu: 'https://via.placeholder.com/800x600/FFFACD/8B8B7A?text=Tofu',
-  tempeh: 'https://via.placeholder.com/800x600/D2B48C/8B7355?text=Tempeh',
+  chicken: 'linear-gradient(135deg, #FFE4B5 0%, #F4A460 100%)',
+  salmon: 'linear-gradient(135deg, #FFA07A 0%, #FF7F50 100%)',
+  fish: 'linear-gradient(135deg, #B0E0E6 0%, #87CEEB 100%)',
+  beef: 'linear-gradient(135deg, #F4A460 0%, #CD853F 100%)',
+  steak: 'linear-gradient(135deg, #F4A460 0%, #CD853F 100%)',
+  tofu: 'linear-gradient(135deg, #FFFACD 0%, #F0E68C 100%)',
+  tempeh: 'linear-gradient(135deg, #D2B48C 0%, #BC8F8F 100%)',
   
   // Legumes
-  lentil: 'https://via.placeholder.com/800x600/CD853F/8B4513?text=Lentil',
-  chickpea: 'https://via.placeholder.com/800x600/F5DEB3/DAA520?text=Chickpea',
-  bean: 'https://via.placeholder.com/800x600/8B4513/654321?text=Beans',
+  lentil: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
+  chickpea: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
+  bean: 'linear-gradient(135deg, #8B4513 0%, #654321 100%)',
   
   // Vegetables
-  quinoa: 'https://via.placeholder.com/800x600/F0E68C/BDB76B?text=Quinoa',
-  avocado: 'https://via.placeholder.com/800x600/9ACD32/556B2F?text=Avocado',
-  spinach: 'https://via.placeholder.com/800x600/7CFC00/228B22?text=Spinach',
-  kale: 'https://via.placeholder.com/800x600/6B8E23/556B2F?text=Kale',
-  broccoli: 'https://via.placeholder.com/800x600/7FFF00/228B22?text=Broccoli',
-  potato: 'https://via.placeholder.com/800x600/DEB887/8B7355?text=Potato',
-  sweet: 'https://via.placeholder.com/800x600/FF8C00/8B4500?text=Sweet+Potato',
+  quinoa: 'linear-gradient(135deg, #F0E68C 0%, #BDB76B 100%)',
+  avocado: 'linear-gradient(135deg, #9ACD32 0%, #6B8E23 100%)',
+  spinach: 'linear-gradient(135deg, #7CFC00 0%, #32CD32 100%)',
+  kale: 'linear-gradient(135deg, #6B8E23 0%, #556B2F 100%)',
+  broccoli: 'linear-gradient(135deg, #7FFF00 0%, #32CD32 100%)',
+  potato: 'linear-gradient(135deg, #DEB887 0%, #BC8F8F 100%)',
+  sweet: 'linear-gradient(135deg, #FF8C00 0%, #FF7F50 100%)',
   
   // Cooking methods
-  curry: 'https://via.placeholder.com/800x600/FFD700/FF8C00?text=Curry',
-  'stir-fry': 'https://via.placeholder.com/800x600/90EE90/228B22?text=Stir+Fry',
-  stir: 'https://via.placeholder.com/800x600/90EE90/228B22?text=Stir+Fry',
-  roast: 'https://via.placeholder.com/800x600/D2691E/8B4513?text=Roasted',
-  grilled: 'https://via.placeholder.com/800x600/CD853F/8B4513?text=Grilled',
-  grill: 'https://via.placeholder.com/800x600/CD853F/8B4513?text=Grilled',
-  baked: 'https://via.placeholder.com/800x600/F5DEB3/D2691E?text=Baked',
-  bake: 'https://via.placeholder.com/800x600/F5DEB3/D2691E?text=Baked',
+  curry: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+  'stir-fry': 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
+  stir: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
+  roast: 'linear-gradient(135deg, #D2691E 0%, #A0522D 100%)',
+  grilled: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
+  grill: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
+  baked: 'linear-gradient(135deg, #F5DEB3 0%, #D2691E 100%)',
+  bake: 'linear-gradient(135deg, #F5DEB3 0%, #D2691E 100%)',
   
   // Tacos & Wraps
-  taco: 'https://via.placeholder.com/800x600/FFE4B5/FF8C00?text=Taco',
-  burrito: 'https://via.placeholder.com/800x600/FFE4B5/FF8C00?text=Burrito',
-  wrap: 'https://via.placeholder.com/800x600/FFE4B5/FF8C00?text=Wrap',
+  taco: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
+  burrito: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
+  wrap: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
   
   // Desserts
-  dessert: 'https://via.placeholder.com/800x600/FFB6C1/DC143C?text=Dessert',
-  cake: 'https://via.placeholder.com/800x600/FFC0CB/FF1493?text=Cake',
-  cookie: 'https://via.placeholder.com/800x600/D2691E/8B4513?text=Cookie',
-  chocolate: 'https://via.placeholder.com/800x600/8B4513/3C1414?text=Chocolate',
+  dessert: 'linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)',
+  cake: 'linear-gradient(135deg, #FFC0CB 0%, #FF1493 100%)',
+  cookie: 'linear-gradient(135deg, #D2691E 0%, #8B4513 100%)',
+  chocolate: 'linear-gradient(135deg, #8B4513 0%, #3C1414 100%)',
   
   // Smoothies & Drinks
-  smoothie: 'https://via.placeholder.com/800x600/FFB6C1/FF69B4?text=Smoothie',
-  juice: 'https://via.placeholder.com/800x600/FFA500/FF6347?text=Juice',
+  smoothie: 'linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)',
+  juice: 'linear-gradient(135deg, #FFA500 0%, #FF6347 100%)',
   
   // Sandwich
-  sandwich: 'https://via.placeholder.com/800x600/F5DEB3/D2691E?text=Sandwich',
-  burger: 'https://via.placeholder.com/800x600/F4A460/8B4513?text=Burger',
+  sandwich: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
+  burger: 'linear-gradient(135deg, #F4A460 0%, #8B4513 100%)',
   
   // Pizza
-  pizza: 'https://via.placeholder.com/800x600/FFE4B5/DC143C?text=Pizza',
+  pizza: 'linear-gradient(135deg, #FFE4B5 0%, #DC143C 100%)',
   
   // More specific items
-  bulgur: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Bulgur',
-  casserole: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Casserole',
-  medley: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Medley',
-  plate: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Plate',
-  wild: 'https://via.placeholder.com/800x600/FFFAF0/CD853F?text=Wild+Rice',
-  onion: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Onion',
-  broil: 'https://via.placeholder.com/800x600/CD853F/8B4513?text=Broiled',
-  simmer: 'https://via.placeholder.com/800x600/FFE4B5/D2691E?text=Simmered',
-  blanch: 'https://via.placeholder.com/800x600/90EE90/228B22?text=Blanched',
+  bulgur: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
+  casserole: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
+  medley: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
+  plate: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
+  wild: 'linear-gradient(135deg, #FFFAF0 0%, #CD853F 100%)',
+  onion: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
+  broil: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
+  simmer: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
+  blanch: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
   
-  // Default fallback - healthy bowl
-  default: 'https://via.placeholder.com/800x600/E6F3E6/5A6B54?text=Recipe'
+  // Default fallback - sage green
+  default: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)'
 };
 
 /**
- * Get image URL for a recipe based on its name
- * @param recipeName - The name of the recipe
- * @returns Image URL
+ * Emoji icons for different recipe categories
  */
-export function getRecipeImage(recipeName: string): string {
-  if (!recipeName) return RECIPE_IMAGES.default;
+const RECIPE_EMOJIS: Record<string, string> = {
+  pasta: '🍝', noodles: '🍜', spaghetti: '🍝',
+  salad: '🥗',
+  rice: '🍚', risotto: '🍚',
+  soup: '🍲', stew: '🍲', broth: '🍲',
+  oatmeal: '🥣', oats: '🥣', pancake: '🥞', waffle: '🧇', toast: '🍞', egg: '🥚', omelette: '🍳',
+  bowl: '🥙', poke: '🥙',
+  chicken: '🍗', salmon: '🐟', fish: '🐟', beef: '🥩', steak: '🥩', tofu: '🥘', tempeh: '🥘',
+  lentil: '🫘', chickpea: '🫘', bean: '🫘',
+  quinoa: '🌾', avocado: '🥑', spinach: '🥬', kale: '🥬', broccoli: '🥦', potato: '🥔', sweet: '🍠',
+  curry: '🍛', 'stir-fry': '🥘', stir: '🥘', roast: '🍖', grilled: '🍖', grill: '🍖', baked: '🥘', bake: '🥘',
+  taco: '🌮', burrito: '🌯', wrap: '🌯',
+  dessert: '🍰', cake: '🍰', cookie: '🍪', chocolate: '🍫',
+  smoothie: '🥤', juice: '🧃',
+  sandwich: '🥪', burger: '🍔',
+  pizza: '🍕',
+  bulgur: '🥙', casserole: '🥘', medley: '🥙', plate: '🍽️', wild: '🍚', onion: '🧅',
+  broil: '🍖', simmer: '🍲', blanch: '🥬',
+  default: '🍽️'
+};
+
+/**
+ * Get gradient background for a recipe based on its name
+ * @param recipeName - The name of the recipe
+ * @returns CSS gradient string
+ */
+export function getRecipeGradient(recipeName: string): string {
+  if (!recipeName) return RECIPE_GRADIENTS.default;
   
   const nameLower = recipeName.toLowerCase();
   
   // Check each keyword in order of priority
-  for (const [keyword, imageUrl] of Object.entries(RECIPE_IMAGES)) {
+  for (const [keyword, gradient] of Object.entries(RECIPE_GRADIENTS)) {
     if (keyword === 'default') continue;
-    
-    // Check if recipe name contains the keyword
     if (nameLower.includes(keyword)) {
-      return imageUrl;
+      return gradient;
     }
   }
   
-  // Return default if no match found
-  return RECIPE_IMAGES.default;
+  return RECIPE_GRADIENTS.default;
+}
+
+/**
+ * Get emoji icon for a recipe based on its name
+ * @param recipeName - The name of the recipe
+ * @returns Emoji string
+ */
+export function getRecipeEmoji(recipeName: string): string {
+  if (!recipeName) return RECIPE_EMOJIS.default;
+  
+  const nameLower = recipeName.toLowerCase();
+  
+  // Check each keyword in order of priority
+  for (const [keyword, emoji] of Object.entries(RECIPE_EMOJIS)) {
+    if (keyword === 'default') continue;
+    if (nameLower.includes(keyword)) {
+      return emoji;
+    }
+  }
+  
+  return RECIPE_EMOJIS.default;
+}
+
+// Legacy function for backward compatibility - returns gradient
+export function getRecipeImage(recipeName: string): string {
+  return getRecipeGradient(recipeName);
 }
 
 /**
@@ -139,4 +187,5 @@ export function formatCalories(calories: number | undefined | null): string {
   }
   return Math.round(calories).toString();
 }
+
 

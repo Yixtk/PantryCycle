@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Home, User, BookOpen, Droplet, Flame, Clock } from 'lucide-react';
 import { Recipe } from '../types';
 import { Input } from './ui/input';
-import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
+import { getRecipeGradient, getRecipeEmoji, formatCalories } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -87,11 +87,12 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                 onClick={() => onRecipeClick(recipe)}
                 className="w-full bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
               >
-                <img
-                  src={getRecipeImage(recipe.name)}
-                  alt={recipe.name}
-                  className="w-full h-48 object-cover"
-                />
+                <div
+                  className="w-full h-48 flex items-center justify-center text-8xl"
+                  style={{ background: getRecipeGradient(recipe.name) }}
+                >
+                  {getRecipeEmoji(recipe.name)}
+                </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="text-slate-900 flex-1">{recipe.name}</h3>

@@ -2,7 +2,7 @@ import { ChevronLeft, Clock, Users, Flame, Minus, Plus, Star } from 'lucide-reac
 import { Recipe } from '../types';
 import { Button } from './ui/button';
 import { useState } from 'react';
-import { getRecipeImage, formatCalories } from '../utils/recipeImageMatcher';
+import { getRecipeGradient, getRecipeEmoji, formatCalories } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -45,11 +45,12 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
       <div className="flex-1 overflow-y-auto hide-scrollbar">
         {/* Header Image */}
         <div className="relative h-64">
-          <img
-            src={getRecipeImage(recipe.name)}
-            alt={recipe.name}
-            className="w-full h-full object-cover"
-          />
+          <div
+            className="w-full h-full flex items-center justify-center text-9xl"
+            style={{ background: getRecipeGradient(recipe.name) }}
+          >
+            {getRecipeEmoji(recipe.name)}
+          </div>
           <button
             onClick={onBack}
             className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-full"
