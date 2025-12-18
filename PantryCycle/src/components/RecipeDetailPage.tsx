@@ -110,27 +110,27 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
 
         {/* Nutrition */}
         {recipe.nutritionPerServing && (
-          <div className="bg-white mx-4 rounded-2xl shadow-lg p-4 mb-4">
-            <h2 className="text-slate-900 mb-3">Nutrition per serving</h2>
-            <div className="grid grid-cols-4 gap-3">
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
+        <div className="bg-white mx-4 rounded-2xl shadow-lg p-4 mb-4">
+          <h2 className="text-slate-900 mb-3">Nutrition per serving</h2>
+          <div className="grid grid-cols-4 gap-3">
+            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
                 <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.protein || 0}g</div>
-                <div className="text-xs text-slate-600">Protein</div>
-              </div>
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#e1e5de' }}>
+              <div className="text-xs text-slate-600">Protein</div>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#e1e5de' }}>
                 <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['unsaturated fat'] || 0}g</div>
                 <div className="text-xs text-slate-600">Unsat. Fat</div>
-              </div>
-              <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            </div>
+            <div className="bg-yellow-50 rounded-xl p-3 text-center">
                 <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['saturated fat'] || 0}g</div>
                 <div className="text-xs text-slate-600">Sat. Fat</div>
-              </div>
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
                 <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.fiber || 0}g</div>
-                <div className="text-xs text-slate-600">Fiber</div>
-              </div>
+              <div className="text-xs text-slate-600">Fiber</div>
             </div>
           </div>
+        </div>
         )}
 
         {/* Adjust Servings */}

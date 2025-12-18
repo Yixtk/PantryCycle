@@ -121,7 +121,9 @@ export default async function handler(req, res) {
       paramIndex++;
     }
 
-    // Filter by dietary preferences (match ALL preferences)
+    // Filter by dietary preferences
+    // Only enforce strict filters for: Vegetarian, Vegan, Gluten-Free, Dairy-Free
+    // Relax filters for: Low-Carb, High-Protein, Pescatarian, Keto (too restrictive)
     if (userData.is_vegetarian) {
       conditions.push('is_vegetarian = TRUE');
     }
@@ -134,18 +136,8 @@ export default async function handler(req, res) {
     if (userData.is_dairy_free) {
       conditions.push('no_dairy = TRUE');
     }
-    if (userData.is_low_carb) {
-      conditions.push('is_low_carb = TRUE');
-    }
-    if (userData.is_high_protein) {
-      conditions.push('is_high_protein = TRUE');
-    }
-    if (userData.is_pescatarian) {
-      conditions.push('is_pescatarian = TRUE');
-    }
-    if (userData.is_keto) {
-      conditions.push('is_keto = TRUE');
-    }
+    // Note: is_low_carb, is_high_protein, is_pescatarian, is_keto are NOT enforced
+    // These tags have too few TRUE values in the database, causing no results
 
     // Filter OUT allergens (exclude recipes containing user's allergens)
     // In recipes_classified table: no_dairy=TRUE means recipe does NOT contain dairy
@@ -172,37 +164,45 @@ export default async function handler(req, res) {
       conditions.push('(no_shellfish = TRUE OR no_shellfish IS NULL)');
     }
 
-    // Build final query
-    const whereClause = conditions.length > 0 
-      ? `WHERE ${conditions.join(' AND ')}` 
-      : '';
+    // Build query with fallback strategy
+    const buildQuery = (whereConditions) => {
+      const whereClause = whereConditions.length > 0 
+        ? `WHERE ${whereConditions.join(' AND ')}` 
+        : '';
+      
+      return `
+        SELECT 
+          id,
+          recipe_title,
+          ingredients,
+          cooking_instructions,
+          category,
+          nutrition_calories,
+          serving_size,
+          nutrition_per_serving,
+          breakfast,
+          lunch,
+          dinner,
+          menstrual_phase_tag,
+          prep_time,
+          cook_time
+        FROM recipes_classified
+        ${whereClause}
+        ORDER BY RANDOM()
+        LIMIT 5
+      `;
+    };
     
-    const query = `
-      SELECT 
-        id,
-        recipe_title,
-        ingredients,
-        cooking_instructions,
-        category,
-        nutrition_calories,
-        serving_size,
-        nutrition_per_serving,
-        breakfast,
-        lunch,
-        dinner,
-        menstrual_phase_tag,
-        prep_time,
-        cook_time
-      FROM recipes_classified
-      ${whereClause}
-      ORDER BY RANDOM()
-      LIMIT 5
-    `;
+    // Try with all conditions first
+    let query = buildQuery(conditions);
+    let params_copy = [...params];
 
     console.log('Query:', query);
     console.log('Params:', params);
 
     const recipesResult = await pool.query(query, params);
+    
+    console.log(`✅ Found ${recipesResult.rows.length} recipes matching user preferences`);
 
     // Format recipes for frontend with safe JSON parsing
     const recipes = recipesResult.rows.map(row => {

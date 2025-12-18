@@ -50,7 +50,7 @@ export function CalendarPage({
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
   const [newWeekMeals, setNewWeekMeals] = useState<{ [day: number]: string[] }>({});
   const [isSavingWeek, setIsSavingWeek] = useState(false);
-  
+
   // Recipe selection state (Step 2)
   const [modalStep, setModalStep] = useState<'selectMeals' | 'selectRecipes'>('selectMeals');
   const [recommendedRecipesForWeek, setRecommendedRecipesForWeek] = useState<{ [key: string]: Recipe[] }>({});
@@ -347,11 +347,11 @@ export function CalendarPage({
           const key = `${day}-${mealType}`;
           const selectedRecipeId = selectedRecipesForMeals[key];
           
-          dayMealAssignments.push({
-            meal: mealType,
+              dayMealAssignments.push({
+                meal: mealType,
             recipeId: selectedRecipeId || null,
-            phase: phase
-          });
+                phase: phase
+              });
         }
         
         enhancedMeals[day] = dayMealAssignments;
@@ -882,10 +882,10 @@ export function CalendarPage({
         
         <div className="mb-6 pt-2">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
+          <div>
+            <h1 className="text-2xl mb-1" style={{ color: COLORS.sageDark }}>Pantry Cycle</h1>
               <p className="text-sm text-slate-500">Click any day to plan your meals</p>
-            </div>
+          </div>
           </div>
           
           {/* Help tip for new users */}
@@ -1075,18 +1075,18 @@ export function CalendarPage({
                       Back
                     </Button>
                     {modalStep === 'selectMeals' ? (
-                      <Button
+                    <Button
                         onClick={handleProceedToRecipeSelection}
-                        disabled={getTotalMealsSelected() === 0 || isSavingWeek}
-                        className="flex-1 h-11 text-white"
-                        style={{ 
-                          background: (getTotalMealsSelected() > 0 && !isSavingWeek)
-                            ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
-                            : '#d1d5db'
-                        }}
-                      >
+                      disabled={getTotalMealsSelected() === 0 || isSavingWeek}
+                      className="flex-1 h-11 text-white"
+                      style={{ 
+                        background: (getTotalMealsSelected() > 0 && !isSavingWeek)
+                          ? `linear-gradient(135deg, ${COLORS.sageLight} 0%, ${COLORS.sage} 100%)`
+                          : '#d1d5db'
+                      }}
+                    >
                         {isSavingWeek ? 'Loading...' : 'Next: Choose Recipes'}
-                      </Button>
+                    </Button>
                     ) : (
                       <Button
                         onClick={handleSaveWeek}

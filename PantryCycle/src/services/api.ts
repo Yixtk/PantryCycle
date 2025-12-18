@@ -299,8 +299,8 @@ export async function getDayLogs(userId: string, startDate: string, endDate: str
 
 export async function getRecommendedRecipes(userId: string): Promise<Recipe[]> {
   try {
-    // Get all recipes from database (will be filtered in UI based on user preferences)
-    const response = await fetch(`/api/get-recipes?limit=1000`);
+    // Call the recommend-recipes API which uses user preferences
+    const response = await fetch(`/api/recommend-recipes?userId=${userId}`);
     
     if (!response.ok) {
       console.error('Failed to fetch recommended recipes from API');
