@@ -402,7 +402,7 @@ export default function App() {
 
       {appState === 'calendar' && userProfile && (
         <CalendarPage
-          recipes={recommendedRecipes}
+          recipes={recipes}
           userProfile={userProfile}
           onRecipeClick={handleRecipeClick}
           onNavigate={handleNavigate}
