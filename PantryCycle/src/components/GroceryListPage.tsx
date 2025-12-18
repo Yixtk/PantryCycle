@@ -42,7 +42,18 @@ export function GroceryListPage({ onNavigate, recipes, userProfile }: GroceryLis
         if (blockEnd < today || blockStart > nextWeek) {
           return;
         }
-        Object.values(weekBlock.meals).forEach(dayMeals => {
+        
+        // Process each day's meals
+        Object.entries(weekBlock.meals).forEach(([dayOfWeek, dayMeals]) => {
+          // Calculate the actual date for this day
+          const mealDate = new Date(blockStart);
+          mealDate.setDate(blockStart.getDate() + parseInt(dayOfWeek));
+          
+          // Only include meals within the next 7 days
+          if (mealDate < today || mealDate > nextWeek) {
+            return; // Skip this day's meals
+          }
+          
           dayMeals.forEach(mealAssignment => {
             if (typeof mealAssignment !== 'string' && mealAssignment.recipeId) {
               // Find the recipe
