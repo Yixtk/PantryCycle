@@ -2,7 +2,7 @@ import { ChevronLeft, Clock, Users, Flame, Minus, Plus, Star } from 'lucide-reac
 import { Recipe } from '../types';
 import { Button } from './ui/button';
 import { useState } from 'react';
-import { getRecipeGradient, getRecipeEmoji, formatCalories } from '../utils/recipeImageMatcher';
+import { getRecipeImage, formatCalories, formatNutrition } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -45,12 +45,15 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
       <div className="flex-1 overflow-y-auto hide-scrollbar">
         {/* Header Image */}
         <div className="relative h-64">
-          <div
-            className="w-full h-full flex items-center justify-center text-9xl"
-            style={{ background: getRecipeGradient(recipe.name) }}
-          >
-            {getRecipeEmoji(recipe.name)}
-          </div>
+          <img
+            src={getRecipeImage(recipe.name)}
+            alt={recipe.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback if image fails to load
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80';
+            }}
+          />
           <button
             onClick={onBack}
             className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-full"
@@ -116,19 +119,19 @@ export function RecipeDetailPage({ recipe, onBack, onSaveRecipe }: RecipeDetailP
           <h2 className="text-slate-900 mb-3">Nutrition per serving</h2>
           <div className="grid grid-cols-4 gap-3">
             <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
-                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.protein || 0}g</div>
+                <div className="text-slate-900 mb-1">{formatNutrition(recipe.nutritionPerServing.protein)}g</div>
               <div className="text-xs text-slate-600">Protein</div>
             </div>
             <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#e1e5de' }}>
-                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['unsaturated fat'] || 0}g</div>
+                <div className="text-slate-900 mb-1">{formatNutrition(recipe.nutritionPerServing['unsaturated fat'])}g</div>
                 <div className="text-xs text-slate-600">Unsat. Fat</div>
             </div>
             <div className="bg-yellow-50 rounded-xl p-3 text-center">
-                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing['saturated fat'] || 0}g</div>
+                <div className="text-slate-900 mb-1">{formatNutrition(recipe.nutritionPerServing['saturated fat'])}g</div>
                 <div className="text-xs text-slate-600">Sat. Fat</div>
             </div>
             <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f0f2ef' }}>
-                <div className="text-slate-900 mb-1">{recipe.nutritionPerServing.fiber || 0}g</div>
+                <div className="text-slate-900 mb-1">{formatNutrition(recipe.nutritionPerServing.fiber)}g</div>
               <div className="text-xs text-slate-600">Fiber</div>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Home, User, BookOpen, Droplet, Flame, Clock } from 'lucide-react';
 import { Recipe } from '../types';
 import { Input } from './ui/input';
-import { getRecipeGradient, getRecipeEmoji, formatCalories } from '../utils/recipeImageMatcher';
+import { getRecipeImage, formatCalories, formatNutrition } from '../utils/recipeImageMatcher';
 
 // Phase colors and icons
 const PHASE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
@@ -87,12 +87,15 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                 onClick={() => onRecipeClick(recipe)}
                 className="w-full bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
               >
-                <div
-                  className="w-full h-48 flex items-center justify-center text-8xl"
-                  style={{ background: getRecipeGradient(recipe.name) }}
-                >
-                  {getRecipeEmoji(recipe.name)}
-                </div>
+                <img
+                  src={getRecipeImage(recipe.name)}
+                  alt={recipe.name}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop&q=80';
+                  }}
+                />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="text-slate-900 flex-1">{recipe.name}</h3>
@@ -124,15 +127,15 @@ export function RecipeListPage({ recipes, onRecipeClick, onNavigate }: RecipeLis
                   <div className="mt-3 flex gap-2">
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#f0f2ef' }}>
                       <div className="text-slate-600">Protein</div>
-                      <div className="text-slate-900">{getNutrition(recipe).protein || 0}g</div>
+                      <div className="text-slate-900">{formatNutrition(getNutrition(recipe).protein)}g</div>
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#e1e5de' }}>
                       <div className="text-slate-600">Carbs</div>
-                      <div className="text-slate-900">{getNutrition(recipe).carbs || 0}g</div>
+                      <div className="text-slate-900">{formatNutrition(getNutrition(recipe).carbs)}g</div>
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#f0f2ef' }}>
                       <div className="text-slate-600">Fat</div>
-                      <div className="text-slate-900">{getNutrition(recipe).fat || 0}g</div>
+                      <div className="text-slate-900">{formatNutrition(getNutrition(recipe).fat)}g</div>
                     </div>
                   </div>
                 </div>

@@ -1,179 +1,131 @@
 /**
- * Match recipe name to appropriate gradient background based on keywords
- * Returns CSS gradient string for use in style={{background: ...}}
+ * Match recipe name to appropriate image URL based on keywords
  */
 
-// Color gradients for different recipe categories
-const RECIPE_GRADIENTS: Record<string, string> = {
+// Stable Unsplash image URLs by photo ID (more reliable than search)
+const RECIPE_IMAGES: Record<string, string> = {
   // Pasta & Noodles
-  pasta: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
-  noodles: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
-  spaghetti: 'linear-gradient(135deg, #FFE5B4 0%, #F4A460 100%)',
+  pasta: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9',
+  noodles: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624',
+  spaghetti: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9',
   
   // Salads
-  salad: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
+  salad: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
   
   // Rice dishes
-  rice: 'linear-gradient(135deg, #FFFAF0 0%, #F5DEB3 100%)',
-  risotto: 'linear-gradient(135deg, #FFFAF0 0%, #F5DEB3 100%)',
+  rice: 'https://images.unsplash.com/photo-1516684732162-798a0062be99',
+  risotto: 'https://images.unsplash.com/photo-1476124369491-bb3e6d5ddf9c',
   
   // Soups & Stews
-  soup: 'linear-gradient(135deg, #FFE4B5 0%, #DEB887 100%)',
-  stew: 'linear-gradient(135deg, #FFE4B5 0%, #CD853F 100%)',
-  broth: 'linear-gradient(135deg, #FFE4B5 0%, #DEB887 100%)',
+  soup: 'https://images.unsplash.com/photo-1547592166-23ac45744acd',
+  stew: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d',
+  broth: 'https://images.unsplash.com/photo-1547592166-23ac45744acd',
   
   // Breakfast
-  oatmeal: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
-  oats: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
-  pancake: 'linear-gradient(135deg, #FFE4C4 0%, #FFDAB9 100%)',
-  waffle: 'linear-gradient(135deg, #FFE4C4 0%, #FFDAB9 100%)',
-  toast: 'linear-gradient(135deg, #FFE4C4 0%, #DEB887 100%)',
-  egg: 'linear-gradient(135deg, #FFF8DC 0%, #FFE4B5 100%)',
-  omelette: 'linear-gradient(135deg, #FFF8DC 0%, #FFE4B5 100%)',
+  oatmeal: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf',
+  oats: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf',
+  pancake: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445',
+  waffle: 'https://images.unsplash.com/photo-1568051243851-f9b136146e97',
+  toast: 'https://images.unsplash.com/photo-1525351484163-7529414344d8',
+  egg: 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543',
+  omelette: 'https://images.unsplash.com/photo-1525351484163-7529414344d8',
   
   // Bowls
-  bowl: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
-  poke: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
+  bowl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+  poke: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
   
   // Protein dishes
-  chicken: 'linear-gradient(135deg, #FFE4B5 0%, #F4A460 100%)',
-  salmon: 'linear-gradient(135deg, #FFA07A 0%, #FF7F50 100%)',
-  fish: 'linear-gradient(135deg, #B0E0E6 0%, #87CEEB 100%)',
-  beef: 'linear-gradient(135deg, #F4A460 0%, #CD853F 100%)',
-  steak: 'linear-gradient(135deg, #F4A460 0%, #CD853F 100%)',
-  tofu: 'linear-gradient(135deg, #FFFACD 0%, #F0E68C 100%)',
-  tempeh: 'linear-gradient(135deg, #D2B48C 0%, #BC8F8F 100%)',
+  chicken: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6',
+  salmon: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288',
+  fish: 'https://images.unsplash.com/photo-1534766438357-2b77c9d29e0c',
+  beef: 'https://images.unsplash.com/photo-1588347818036-5e5580d1e6e7',
+  steak: 'https://images.unsplash.com/photo-1588347818036-5e5580d1e6e7',
+  tofu: 'https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f',
+  tempeh: 'https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f',
   
   // Legumes
-  lentil: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
-  chickpea: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
-  bean: 'linear-gradient(135deg, #8B4513 0%, #654321 100%)',
+  lentil: 'https://images.unsplash.com/photo-1596797038530-2c107229654b',
+  chickpea: 'https://images.unsplash.com/photo-1607532941433-304659e8198a',
+  bean: 'https://images.unsplash.com/photo-1589478830659-1c4aa50900c8',
   
-  // Vegetables
-  quinoa: 'linear-gradient(135deg, #F0E68C 0%, #BDB76B 100%)',
-  avocado: 'linear-gradient(135deg, #9ACD32 0%, #6B8E23 100%)',
-  spinach: 'linear-gradient(135deg, #7CFC00 0%, #32CD32 100%)',
-  kale: 'linear-gradient(135deg, #6B8E23 0%, #556B2F 100%)',
-  broccoli: 'linear-gradient(135deg, #7FFF00 0%, #32CD32 100%)',
-  potato: 'linear-gradient(135deg, #DEB887 0%, #BC8F8F 100%)',
-  sweet: 'linear-gradient(135deg, #FF8C00 0%, #FF7F50 100%)',
+  // Vegetables  
+  quinoa: 'https://images.unsplash.com/photo-1586201375761-83865001e31c',
+  avocado: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578',
+  spinach: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb',
+  kale: 'https://images.unsplash.com/photo-1506802913710-40e2e66339c9',
+  broccoli: 'https://images.unsplash.com/photo-1459411552884-841db9b3cc2a',
+  potato: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655',
+  sweet: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90',
   
   // Cooking methods
-  curry: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-  'stir-fry': 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
-  stir: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
-  roast: 'linear-gradient(135deg, #D2691E 0%, #A0522D 100%)',
-  grilled: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
-  grill: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
-  baked: 'linear-gradient(135deg, #F5DEB3 0%, #D2691E 100%)',
-  bake: 'linear-gradient(135deg, #F5DEB3 0%, #D2691E 100%)',
+  curry: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd',
+  'stir-fry': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
+  stir: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b',
+  roast: 'https://images.unsplash.com/photo-1574484284002-952d92456975',
+  grilled: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba',
+  grill: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba',
+  baked: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
+  bake: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93',
   
   // Tacos & Wraps
-  taco: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
-  burrito: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
-  wrap: 'linear-gradient(135deg, #FFE4B5 0%, #FF8C00 100%)',
+  taco: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b',
+  burrito: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f',
+  wrap: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f',
   
   // Desserts
-  dessert: 'linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)',
-  cake: 'linear-gradient(135deg, #FFC0CB 0%, #FF1493 100%)',
-  cookie: 'linear-gradient(135deg, #D2691E 0%, #8B4513 100%)',
-  chocolate: 'linear-gradient(135deg, #8B4513 0%, #3C1414 100%)',
+  dessert: 'https://images.unsplash.com/photo-1551024506-0bccd828d307',
+  cake: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587',
+  cookie: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
+  chocolate: 'https://images.unsplash.com/photo-1511381939415-e44015466834',
   
   // Smoothies & Drinks
-  smoothie: 'linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)',
-  juice: 'linear-gradient(135deg, #FFA500 0%, #FF6347 100%)',
+  smoothie: 'https://images.unsplash.com/photo-1505252585461-04db1eb84625',
+  juice: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8',
   
   // Sandwich
-  sandwich: 'linear-gradient(135deg, #F5DEB3 0%, #D2B48C 100%)',
-  burger: 'linear-gradient(135deg, #F4A460 0%, #8B4513 100%)',
+  sandwich: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af',
+  burger: 'https://images.unsplash.com/photo-1550547660-d9450f859349',
   
   // Pizza
-  pizza: 'linear-gradient(135deg, #FFE4B5 0%, #DC143C 100%)',
+  pizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
   
   // More specific items
-  bulgur: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
-  casserole: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
-  medley: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
-  plate: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)',
-  wild: 'linear-gradient(135deg, #FFFAF0 0%, #CD853F 100%)',
-  onion: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
-  broil: 'linear-gradient(135deg, #CD853F 0%, #8B4513 100%)',
-  simmer: 'linear-gradient(135deg, #FFE4B5 0%, #D2691E 100%)',
-  blanch: 'linear-gradient(135deg, #90EE90 0%, #32CD32 100%)',
+  bulgur: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+  casserole: 'https://images.unsplash.com/photo-1574484284002-952d92456975',
+  medley: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+  plate: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+  wild: 'https://images.unsplash.com/photo-1536304447766-da0ed4ce1b73',
+  onion: 'https://images.unsplash.com/photo-1587486936387-1c257d9c2b0d',
+  broil: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba',
+  simmer: 'https://images.unsplash.com/photo-1547592166-23ac45744acd',
+  blanch: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
   
-  // Default fallback - sage green
-  default: 'linear-gradient(135deg, #E6F3E6 0%, #A8B5A0 100%)'
+  // Default fallback - healthy bowl
+  default: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'
 };
 
 /**
- * Emoji icons for different recipe categories
- */
-const RECIPE_EMOJIS: Record<string, string> = {
-  pasta: '🍝', noodles: '🍜', spaghetti: '🍝',
-  salad: '🥗',
-  rice: '🍚', risotto: '🍚',
-  soup: '🍲', stew: '🍲', broth: '🍲',
-  oatmeal: '🥣', oats: '🥣', pancake: '🥞', waffle: '🧇', toast: '🍞', egg: '🥚', omelette: '🍳',
-  bowl: '🥙', poke: '🥙',
-  chicken: '🍗', salmon: '🐟', fish: '🐟', beef: '🥩', steak: '🥩', tofu: '🥘', tempeh: '🥘',
-  lentil: '🫘', chickpea: '🫘', bean: '🫘',
-  quinoa: '🌾', avocado: '🥑', spinach: '🥬', kale: '🥬', broccoli: '🥦', potato: '🥔', sweet: '🍠',
-  curry: '🍛', 'stir-fry': '🥘', stir: '🥘', roast: '🍖', grilled: '🍖', grill: '🍖', baked: '🥘', bake: '🥘',
-  taco: '🌮', burrito: '🌯', wrap: '🌯',
-  dessert: '🍰', cake: '🍰', cookie: '🍪', chocolate: '🍫',
-  smoothie: '🥤', juice: '🧃',
-  sandwich: '🥪', burger: '🍔',
-  pizza: '🍕',
-  bulgur: '🥙', casserole: '🥘', medley: '🥙', plate: '🍽️', wild: '🍚', onion: '🧅',
-  broil: '🍖', simmer: '🍲', blanch: '🥬',
-  default: '🍽️'
-};
-
-/**
- * Get gradient background for a recipe based on its name
+ * Get image URL for a recipe based on its name
  * @param recipeName - The name of the recipe
- * @returns CSS gradient string
+ * @returns Full Unsplash image URL with parameters
  */
-export function getRecipeGradient(recipeName: string): string {
-  if (!recipeName) return RECIPE_GRADIENTS.default;
-  
-  const nameLower = recipeName.toLowerCase();
-  
-  // Check each keyword in order of priority
-  for (const [keyword, gradient] of Object.entries(RECIPE_GRADIENTS)) {
-    if (keyword === 'default') continue;
-    if (nameLower.includes(keyword)) {
-      return gradient;
-    }
-  }
-  
-  return RECIPE_GRADIENTS.default;
-}
-
-/**
- * Get emoji icon for a recipe based on its name
- * @param recipeName - The name of the recipe
- * @returns Emoji string
- */
-export function getRecipeEmoji(recipeName: string): string {
-  if (!recipeName) return RECIPE_EMOJIS.default;
-  
-  const nameLower = recipeName.toLowerCase();
-  
-  // Check each keyword in order of priority
-  for (const [keyword, emoji] of Object.entries(RECIPE_EMOJIS)) {
-    if (keyword === 'default') continue;
-    if (nameLower.includes(keyword)) {
-      return emoji;
-    }
-  }
-  
-  return RECIPE_EMOJIS.default;
-}
-
-// Legacy function for backward compatibility - returns gradient
 export function getRecipeImage(recipeName: string): string {
-  return getRecipeGradient(recipeName);
+  if (!recipeName) {
+    return `${RECIPE_IMAGES.default}?w=800&h=600&fit=crop&q=80`;
+  }
+  
+  const nameLower = recipeName.toLowerCase();
+  
+  // Check each keyword in order of priority
+  for (const [keyword, imageBaseUrl] of Object.entries(RECIPE_IMAGES)) {
+    if (keyword === 'default') continue;
+    if (nameLower.includes(keyword)) {
+      return `${imageBaseUrl}?w=800&h=600&fit=crop&q=80`;
+    }
+  }
+  
+  // Return default if no match found
+  return `${RECIPE_IMAGES.default}?w=800&h=600&fit=crop&q=80`;
 }
 
 /**
@@ -187,5 +139,18 @@ export function formatCalories(calories: number | undefined | null): string {
   }
   return Math.round(calories).toString();
 }
+
+/**
+ * Format nutritional value to 1 decimal place
+ * @param value - The nutritional value (protein, fat, carbs, etc.)
+ * @returns Formatted string with 1 decimal place
+ */
+export function formatNutrition(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) {
+    return '0.0';
+  }
+  return value.toFixed(1);
+}
+
 
 
