@@ -118,14 +118,22 @@ export default async function handler(req, res) {
       RETURNING id
     `;
 
-    console.log('Executing update');
+    console.log('Executing update for user ID:', userId);
+    console.log('Query:', query);
+    console.log('Values:', values);
+    
     const result = await pool.query(query, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      console.error('UPDATE matched 0 rows! User ID:', userId);
+      return res.status(404).json({ 
+        error: 'User not found',
+        userId: userId,
+        hint: 'The user ID does not exist in the database'
+      });
     }
 
-    console.log('Profile updated successfully');
+    console.log('Profile updated successfully for user:', userId);
 
     return res.status(200).json({
       success: true,

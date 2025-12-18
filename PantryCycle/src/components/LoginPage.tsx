@@ -14,15 +14,28 @@ export function LoginPage({ onLogin, onCreateAccount }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(username, password);
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      await onLogin(username, password);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCreateAccount = (e: React.FormEvent) => {
+  const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateAccount({ username, password, firstName, lastName });
+    if (isLoading) return; // Prevent double submission
+    setIsLoading(true);
+    try {
+      await onCreateAccount({ username, password, firstName, lastName });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (mode === 'choice') {
@@ -115,8 +128,13 @@ export function LoginPage({ onLogin, onCreateAccount }: LoginPageProps) {
               />
             </div>
 
-            <Button type="submit" className="w-full text-white" style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}>
-              Create Account
+            <Button 
+              type="submit" 
+              className="w-full text-white" 
+              style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
 
             <div className="text-center pt-2">
@@ -169,8 +187,13 @@ export function LoginPage({ onLogin, onCreateAccount }: LoginPageProps) {
             />
           </div>
 
-          <Button type="submit" className="w-full text-white" style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}>
-            Sign In
+          <Button 
+            type="submit" 
+            className="w-full text-white" 
+            style={{ background: 'linear-gradient(135deg, #a8b5a0 0%, #8a9a84 100%)' }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
 
           <div className="text-center pt-2">
