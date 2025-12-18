@@ -122,14 +122,16 @@ export default async function handler(req, res) {
     }
 
     // Filter by dietary preferences
-    // Only enforce strict filters for: Vegetarian, Vegan, Gluten-Free, Dairy-Free
-    // Relax filters for: Low-Carb, High-Protein, Pescatarian, Keto (too restrictive)
-    if (userData.is_vegetarian) {
+    // Strict filters: Vegetarian, Vegan, Gluten-Free, Dairy-Free
+    // Relaxed filters: Low-Carb, High-Protein, Pescatarian, Keto (not enforced)
+    if (userData.is_vegan) {
+      // Vegan is the strictest - use the is_vegan tag directly
+      conditions.push('is_vegan = TRUE');
+    } else if (userData.is_vegetarian) {
+      // Vegetarian but not vegan
       conditions.push('is_vegetarian = TRUE');
     }
-    if (userData.is_vegan) {
-      conditions.push('is_vegetarian = TRUE'); // Vegan recipes should be vegetarian
-    }
+    
     if (userData.is_gluten_free) {
       conditions.push('is_gluten_free = TRUE');
     }

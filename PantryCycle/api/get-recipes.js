@@ -63,8 +63,9 @@ export default async function handler(req, res) {
           case 'Vegetarian':
             conditions.push('is_vegetarian = TRUE');
             break;
-          // Note: No is_vegan column in database
-          // Vegan users should select Vegetarian + Dairy-Free preferences
+          case 'Vegan':
+            conditions.push('is_vegan = TRUE');
+            break;
           case 'Gluten-Free':
             conditions.push('is_gluten_free = TRUE');
             break;
