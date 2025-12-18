@@ -7,24 +7,35 @@ Calculates and adds carbohydrate data to the `nutrition_per_serving` JSON field 
 
 ### Usage
 
-#### Option 1: Railway Dashboard (Recommended)
+#### Option 1: Railway Terminal (Recommended)
 1. Log in to Railway: https://railway.app
-2. Select your PostgreSQL database
-3. Click **"Query"** tab
-4. Copy and paste the contents of `add_carbohydrates.sql`
-5. Click **"Run"** or press Ctrl/Cmd + Enter
-6. Wait for completion (may take 10-20 seconds)
+2. Select your PostgreSQL service
+3. Click **"Terminal"** or **"Shell"** tab at the top
+4. Connect to database:
+   ```bash
+   psql $DATABASE_URL
+   ```
+5. Copy and paste **all** contents of `add_carbohydrates.sql`
+6. Press Enter and wait 10-20 seconds
+7. Type `\q` to exit when done
 
-#### Option 2: psql Command Line
+#### Option 2: Local Terminal with Helper Script
 ```bash
-# Connect to your Railway database
-psql "postgresql://postgres:password@host.railway.app:5432/railway"
+# Step 1: Get your DATABASE_URL from Railway Dashboard
+# (PostgreSQL service → Connect/Variables → copy DATABASE_URL)
 
-# Run the script
-\i add_carbohydrates.sql
+# Step 2: Set the environment variable
+export DATABASE_URL='postgresql://postgres:password@host:5432/railway'
 
-# Or pipe it directly
-psql "postgresql://..." < add_carbohydrates.sql
+# Step 3: Run the script
+cd PantryCycle/database
+./run_carbs_script.sh
+```
+
+#### Option 3: Direct psql Command
+```bash
+# Replace with your actual DATABASE_URL
+psql "postgresql://postgres:password@host.railway.app:5432/railway" -f add_carbohydrates.sql
 ```
 
 ### Calculation Method
