@@ -47,21 +47,32 @@ PantryCycle/
 - **Algorithm**: Decision Tree Classifier (scikit-learn)
 - **Max Depth**: 5
 - **Criterion**: Gini Impurity
+- **Total Dataset**: 2,030 recipes
+  - Health.xlsx: 55 recipes (manual)
+  - test100recipes.xlsx: 100 recipes (web scraped)
+  - Health_3000recipes.xlsx: 1,875 recipes (AI-generated, deduplicated)
 - **Training Set**: 1,624 recipes (80%)
 - **Test Set**: 406 recipes (20%)
 - **Training Accuracy**: 93.60%
 - **Test Accuracy**: 92.86%
+- **Overall Metrics**: Precision 0.93 | Recall 0.93 | F1-Score 0.93
 
 ### Phase Distribution
 
 The model achieves balanced distribution across all four phases (target: 15-30% per phase):
 
-| Phase | Training Set | Test Set | Key Nutrients |
-|-------|-------------|---------|---------------|
-| **Menstrual** | ~22.8% | ~21.4% | Iron, Vitamin C |
-| **Follicular** | ~27.0% | ~23.4% | Iron, Vitamin C, Zinc |
-| **Ovulation** | ~19.6% | ~22.2% | Zinc, Vitamin C |
-| **Luteal** | ~30.6% | ~33.0% | Magnesium, Fiber |
+| Phase | Training Set | Test Set | Precision | Recall | F1-Score |
+|-------|-------------|---------|-----------|--------|----------|
+| **Menstrual** | 22.97% (373) | 21.43% (87) | 1.00 | 1.00 | 1.00 |
+| **Follicular** | 27.40% (445) | 23.40% (95) | 0.82 | 0.99 | 0.90 |
+| **Ovulation** | 18.90% (307) | 22.17% (90) | 0.95 | 0.82 | 0.88 |
+| **Luteal** | 30.73% (499) | 33.00% (134) | 0.96 | 0.91 | 0.93 |
+
+**Key Nutrients by Phase:**
+- **Menstrual**: Iron ≥ 4mg, Vitamin C ≥ 25mg (Perfect 100% accuracy!)
+- **Follicular**: Iron 1.5-3.5mg, Vitamin C ≥ 15mg, Zinc ≥ 1.0mg
+- **Ovulation**: Zinc ≥ 1.5mg, Vitamin C ≥ 20mg, Magnesium < 80mg
+- **Luteal**: Magnesium ≥ 100mg OR Fiber ≥ 9g
 
 ## 🚀 Getting Started
 
@@ -139,9 +150,10 @@ The project includes PostgreSQL database integration for production deployment:
 
 | Source | Count | Origin | Processing |
 |--------|-------|--------|------------|
-| Health.xlsx | 55 | ChatGPT-generated | Direct use |
+| Health.xlsx | 55 | Manual annotation | Direct use with nutritional analysis |
 | test100recipes.xlsx | 100 | The Meal DB Free API | Unit conversion, USDA nutrition calculation, Claude API refinement |
-| Health_3000recipes.xlsx | 1,875 (unique) | ChatGPT-generated | Deduplication, unit conversion, USDA nutrition calculation |
+| Health_3000recipes.xlsx | 1,875 (deduplicated from 3,000) | ChatGPT-generated | Deduplication by recipe title, unit conversion, USDA nutrition calculation |
+| **Total** | **2,030** | **Combined** | **80/20 train-test split** |
 
 ### Data Processing Pipeline
 
